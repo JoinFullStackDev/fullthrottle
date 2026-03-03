@@ -1,0 +1,110 @@
+import type { Conversation, ConversationMessage } from '@/lib/types';
+import { SenderType } from '@/lib/constants';
+
+export const MOCK_CONVERSATIONS: Conversation[] = [
+  {
+    id: 'conv-1',
+    agentId: 'agent-axel',
+    agentName: 'Axel',
+    createdBy: 'user-spencer',
+    messageCount: 4,
+    createdAt: '2026-01-20T10:00:00Z',
+  },
+  {
+    id: 'conv-2',
+    agentId: 'agent-riff',
+    agentName: 'Riff',
+    createdBy: 'user-spencer',
+    messageCount: 3,
+    createdAt: '2026-01-21T14:00:00Z',
+  },
+  {
+    id: 'conv-3',
+    agentId: 'agent-torque',
+    agentName: 'Torque',
+    createdBy: 'user-spencer',
+    messageCount: 2,
+    createdAt: '2026-01-22T09:00:00Z',
+  },
+];
+
+export const MOCK_MESSAGES: Record<string, ConversationMessage[]> = {
+  'conv-1': [
+    {
+      id: 'msg-1',
+      conversationId: 'conv-1',
+      senderType: SenderType.HUMAN,
+      senderName: 'Spencer',
+      content: 'Axel, review the runtime adapter interface spec and flag any gaps.',
+      createdAt: '2026-01-20T10:00:00Z',
+    },
+    {
+      id: 'msg-2',
+      conversationId: 'conv-1',
+      senderType: SenderType.AGENT,
+      senderName: 'Axel',
+      content: 'Reviewing 03_RUNTIME_CONTRACT.md. The interface covers agent status, conversations, tasks, usage, and health. I have two observations:\n\n1. The `dispatchTask` payload lacks a `timeout` field — long-running tasks could hang without a cancellation mechanism.\n2. `getUsageSummary` returns a single summary object but doesn\'t specify the aggregation level (per-agent vs. total).\n\nRecommendation: Add optional `timeout` to RuntimeTaskPayload and clarify aggregation in UsageSummary.',
+      createdAt: '2026-01-20T10:02:00Z',
+    },
+    {
+      id: 'msg-3',
+      conversationId: 'conv-1',
+      senderType: SenderType.HUMAN,
+      senderName: 'Spencer',
+      content: 'Good catches. Add timeout as optional. UsageSummary should support both per-agent and total.',
+      createdAt: '2026-01-20T10:05:00Z',
+    },
+    {
+      id: 'msg-4',
+      conversationId: 'conv-1',
+      senderType: SenderType.AGENT,
+      senderName: 'Axel',
+      content: 'Acknowledged. I\'ll update the interface definition and create a follow-up task for the implementation.',
+      createdAt: '2026-01-20T10:06:00Z',
+    },
+  ],
+  'conv-2': [
+    {
+      id: 'msg-5',
+      conversationId: 'conv-2',
+      senderType: SenderType.HUMAN,
+      senderName: 'Spencer',
+      content: 'Riff, verify Phase 1 scope against the original plan. Any drift?',
+      createdAt: '2026-01-21T14:00:00Z',
+    },
+    {
+      id: 'msg-6',
+      conversationId: 'conv-2',
+      senderType: SenderType.AGENT,
+      senderName: 'Riff',
+      content: 'Comparing PLAN.md Section 12 deliverables against current implementation status. No scope drift detected. All 13 steps are accounted for. One note: Step 11 (Knowledge Source Metadata) is lower priority and could be deferred if timeline is tight, without impacting core functionality.',
+      createdAt: '2026-01-21T14:03:00Z',
+    },
+    {
+      id: 'msg-7',
+      conversationId: 'conv-2',
+      senderType: SenderType.AGENT,
+      senderName: 'Riff',
+      content: 'Acceptance criteria for the task system have been drafted and attached to task-2. Ready for review.',
+      createdAt: '2026-01-21T14:10:00Z',
+    },
+  ],
+  'conv-3': [
+    {
+      id: 'msg-8',
+      conversationId: 'conv-3',
+      senderType: SenderType.HUMAN,
+      senderName: 'Spencer',
+      content: 'Torque, what are the highest-risk areas for the persona override system?',
+      createdAt: '2026-01-22T09:00:00Z',
+    },
+    {
+      id: 'msg-9',
+      conversationId: 'conv-3',
+      senderType: SenderType.AGENT,
+      senderName: 'Torque',
+      content: 'Risk assessment for persona override system:\n\n**HIGH RISK:**\n- Override precedence conflicts when multiple scopes apply to the same agent\n- Hotfix overrides not expiring (no TTL enforcement yet)\n- Rollback to a previous version while a newer override is approved\n\n**MEDIUM RISK:**\n- Concurrent edits to the same override by different users\n- Audit log gaps if override creation and logging aren\'t atomic\n\nRecommendation: Add integration tests for precedence resolution and hotfix expiration before shipping.',
+      createdAt: '2026-01-22T09:04:00Z',
+    },
+  ],
+};
