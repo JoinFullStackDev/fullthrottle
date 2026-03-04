@@ -14,13 +14,14 @@ import MenuItem from '@mui/material/MenuItem';
 import Box from '@mui/material/Box';
 import { OwnerType, TaskPriority, PRIORITY_LABELS } from '@/lib/constants';
 import type { OwnerTypeValue, TaskPriorityValue } from '@/lib/constants';
-import { MOCK_AGENTS } from '@/features/agents/mock-data';
-import { MOCK_USERS } from '@/features/usage/mock-data';
+import type { Agent, User } from '@/lib/types';
 
 interface TaskFormProps {
   open: boolean;
   onClose: () => void;
   onSubmit?: (data: TaskFormData) => void;
+  agents?: Agent[];
+  users?: User[];
 }
 
 export interface TaskFormData {
@@ -32,7 +33,7 @@ export interface TaskFormData {
   projectTag: string;
 }
 
-export default function TaskForm({ open, onClose, onSubmit }: TaskFormProps) {
+export default function TaskForm({ open, onClose, onSubmit, agents = [], users = [] }: TaskFormProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [ownerType, setOwnerType] = useState<OwnerTypeValue>(OwnerType.HUMAN);
@@ -57,8 +58,8 @@ export default function TaskForm({ open, onClose, onSubmit }: TaskFormProps) {
 
   const owners =
     ownerType === OwnerType.AGENT
-      ? MOCK_AGENTS.map((a) => ({ id: a.id, label: a.name }))
-      : MOCK_USERS.map((u) => ({ id: u.id, label: u.name }));
+      ? agents.map((a) => ({ id: a.id, label: a.name }))
+      : users.map((u) => ({ id: u.id, label: u.name }));
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>

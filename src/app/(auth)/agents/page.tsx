@@ -1,56 +1,63 @@
 'use client';
 
-import { useState } from 'react';
 import Box from '@mui/material/Box';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
 import { PageContainer, Header } from '@/components/layout';
 import AgentCard from '@/features/agents/components/AgentCard';
-import { MOCK_AGENTS } from '@/features/agents/mock-data';
-import { MOCK_TASKS } from '@/features/tasks/mock-data';
+import { useAgents } from '@/features/agents/hooks/useAgents';
+import { updateAgent } from '@/features/agents/service';
+import { useAuth } from '@/hooks/useAuth';
 import { AgentStatus } from '@/lib/constants';
-import type { Agent } from '@/lib/types';
 
 export default function AgentsPage() {
-  const [agents, setAgents] = useState<Agent[]>([...MOCK_AGENTS]);
+  const { agents, isLoading, error, refetch } = useAgents();
+  const { user } = useAuth();
 
-  const handleDisable = (agentId: string) => {
-    setAgents((prev) =>
-      prev.map((a) =>
-        a.id === agentId
-          ? {
-              ...a,
-              status:
-                a.status === AgentStatus.DISABLED
-                  ? AgentStatus.OFFLINE
-                  : AgentStatus.DISABLED,
-            }
-          : a
-      )
+  const handleDisable = async (agentId: string) => {
+    const agent = agents.find((a) => a.id === agentId);
+    if (!agent) return;
+    const newStatus = agent.status === AgentStatus.DISABLED
+      ? AgentStatus.OFFLINE
+      : AgentStatus.DISABLED;
+    await updateAgent(
+      agentId,
+      { status: newStatus },
+      user ? { actorId: user.id, reason: `Agent ${newStatus === AgentStatus.DISABLED ? 'disabled' : 're-enabled'} via Control Center` } : undefined,
     );
+    refetch();
   };
 
   return (
     <PageContainer>
       <Header title="Agents" subtitle="Manage AI agent personas and configuration" />
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: {
-            xs: '1fr',
-            sm: 'repeat(2, 1fr)',
-            md: 'repeat(3, 1fr)',
-          },
-          gap: 3,
-        }}
-      >
-        {agents.map((agent) => (
-          <AgentCard
-            key={agent.id}
-            agent={agent}
-            taskCount={MOCK_TASKS.filter((t) => t.ownerId === agent.id).length}
-            onDisable={handleDisable}
-          />
-        ))}
-      </Box>
+
+      {isLoading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <CircularProgress />
+        </Box>
+      )}
+
+      {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+
+      {!isLoading && !error && (
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+            gap: 3,
+          }}
+        >
+          {agents.map((agent) => (
+            <AgentCard
+              key={agent.id}
+              agent={agent}
+              taskCount={0}
+              onDisable={handleDisable}
+            />
+          ))}
+        </Box>
+      )}
     </PageContainer>
   );
 }

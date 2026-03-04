@@ -2,11 +2,8 @@
 
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import Avatar from '@mui/material/Avatar';
-import IconButton from '@mui/material/IconButton';
 import Breadcrumbs from '@mui/material/Breadcrumbs';
 import MuiLink from '@mui/material/Link';
-import PersonIcon from '@mui/icons-material/PersonOutlined';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import Link from 'next/link';
 
@@ -71,14 +68,11 @@ export default function Header({ title, subtitle, breadcrumbs, actions }: Header
           </Typography>
         )}
       </Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        {actions}
-        <IconButton size="small" aria-label="User profile">
-          <Avatar sx={{ width: 32, height: 32, bgcolor: 'action.selected' }}>
-            <PersonIcon fontSize="small" />
-          </Avatar>
-        </IconButton>
-      </Box>
+      {actions && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {actions}
+        </Box>
+      )}
     </Box>
   );
 }

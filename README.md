@@ -47,29 +47,31 @@ All agents are **advisory-first, task-enabled**. Humans remain accountable for a
 
 ```
 fullthrottle/
+  supabase/migrations/               # SQL schema + seed data
   docs/                              # Specifications and design docs
     PLAN.md                          # Master implementation plan
     01_DESIGN_GUIDE.md               # Design system reference
     02_ARCHITECTURE.md               # Architecture overview
     03_RUNTIME_CONTRACT.md           # Runtime adapter boundary spec
     _AGENTS/                         # Agent persona definitions
-      00_AGENT_GUIDELINES.md         # Shared agent behaviors and override system
-      AXEL/persona.md               # Engineering agent
-      RIFF/persona.md               # Product agent
-      TORQUE/persona.md             # QA agent
-  src/                               # Application source (Phase 1 build)
+  src/
     app/                             # Next.js App Router (routes + layouts)
-    components/                      # Shared UI components
+      (auth)/                        # Auth-gated layout group (server session check)
+      api/admin/                     # Privileged API routes (users, seed)
+      login/                         # Login page
+    components/                      # Shared UI components (layout, shared)
     features/                        # Self-contained domain modules
-      agents/                        # Agent registry
-      personas/                      # Persona overrides, versioning
-      tasks/                         # Task CRUD, Kanban board
-      conversations/                 # Conversation log viewer (stub)
-      usage/                         # Usage metrics (placeholder)
-      audit/                         # Audit log viewer
-    lib/                             # Supabase client, shared types, runtime adapter
-    hooks/                           # Shared custom hooks
+      agents/                        # service.ts, hooks, components
+      personas/                      # service.ts, components
+      tasks/                         # service.ts, hooks, components (Kanban)
+      conversations/                 # service.ts, components (stub)
+      usage/                         # service.ts, components (placeholder)
+      audit/                         # service.ts
+      knowledge/                     # service.ts
+    lib/                             # Supabase clients, types, permissions, runtime adapter
+    hooks/                           # useAuth
     theme/                           # MUI theme configuration
+    proxy.ts                         # Next.js 16 proxy (session refresh)
 ```
 
 ---
@@ -100,13 +102,36 @@ cd fullthrottle
 npm install
 ```
 
-Create a `.env.local` file:
+Create a `.env` (or `.env.local`) file with your Supabase credentials:
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
+
+### Database Setup
+
+1. Run the SQL migrations against your Supabase project (via the SQL Editor in the Supabase Dashboard, or the Supabase CLI):
+
+   - `supabase/migrations/00001_initial_schema.sql` — Creates all tables, enums, indexes, triggers, and RLS policies
+   - `supabase/migrations/00002_seed_data.sql` — Seeds the 3 MVP agents and knowledge sources
+
+2. Create an initial user via the Supabase Auth dashboard (email/password).
+
+3. After signing in, promote your user to `super_admin` by running this SQL in the Supabase SQL Editor:
+
+   ```sql
+   UPDATE profiles SET role = 'super_admin' WHERE email = 'your-email@example.com';
+   ```
+
+4. (Optional) Seed sample tasks, overrides, and audit logs by calling the dev seed endpoint:
+
+   ```
+   POST /api/admin/seed
+   ```
+
+   This requires an authenticated admin session and is disabled in production.
 
 ### Development
 
@@ -121,6 +146,14 @@ npm run build
 ```
 
 Build must produce **zero errors and zero warnings**.
+
+### Architecture Notes
+
+- **Auth:** Cookie-based sessions via `@supabase/ssr`. The `src/proxy.ts` file (Next.js 16 convention) refreshes the session on every request.
+- **Protected routes:** The `(auth)/layout.tsx` is a Server Component that checks for an active session and redirects to `/login` if none exists.
+- **Service pattern:** Each feature module has a `service.ts` that wraps all Supabase queries for that domain. Components never call Supabase directly.
+- **RBAC:** The `useAuth` hook provides the current user and role. The `lib/permissions.ts` utility maps roles to allowed actions. The `RoleGate` component conditionally renders based on permissions.
+- **API routes:** `api/admin/users` (list/update user roles) and `api/admin/seed` (dev seed) use the service-role key server-side.
 
 ---
 

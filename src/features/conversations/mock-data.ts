@@ -1,5 +1,5 @@
 import type { Conversation, ConversationMessage } from '@/lib/types';
-import { SenderType } from '@/lib/constants';
+import { SenderType, ConversationChannel } from '@/lib/constants';
 
 export const MOCK_CONVERSATIONS: Conversation[] = [
   {
@@ -7,6 +7,10 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     agentId: 'agent-axel',
     agentName: 'Axel',
     createdBy: 'user-spencer',
+    channel: ConversationChannel.WEB,
+    title: 'Runtime adapter review',
+    externalThreadId: null,
+    externalChannelId: null,
     messageCount: 4,
     createdAt: '2026-01-20T10:00:00Z',
   },
@@ -15,6 +19,10 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     agentId: 'agent-riff',
     agentName: 'Riff',
     createdBy: 'user-spencer',
+    channel: ConversationChannel.WEB,
+    title: 'Phase 1 scope check',
+    externalThreadId: null,
+    externalChannelId: null,
     messageCount: 3,
     createdAt: '2026-01-21T14:00:00Z',
   },
@@ -23,6 +31,10 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     agentId: 'agent-torque',
     agentName: 'Torque',
     createdBy: 'user-spencer',
+    channel: ConversationChannel.WEB,
+    title: 'Persona override risk assessment',
+    externalThreadId: null,
+    externalChannelId: null,
     messageCount: 2,
     createdAt: '2026-01-22T09:00:00Z',
   },

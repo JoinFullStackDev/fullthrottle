@@ -7,6 +7,7 @@ export const MOCK_USERS: User[] = [
     name: 'Spencer',
     email: 'spencer@fullstack.dev',
     role: UserRole.SUPER_ADMIN,
+    avatarUrl: null,
     createdAt: '2025-11-01T00:00:00Z',
   },
   {
@@ -14,6 +15,7 @@ export const MOCK_USERS: User[] = [
     name: 'Alex',
     email: 'alex@fullstack.dev',
     role: UserRole.ADMIN,
+    avatarUrl: null,
     createdAt: '2025-11-01T00:00:00Z',
   },
   {
@@ -21,6 +23,7 @@ export const MOCK_USERS: User[] = [
     name: 'Jordan',
     email: 'jordan@fullstack.dev',
     role: UserRole.TEAM_LEAD,
+    avatarUrl: null,
     createdAt: '2025-11-15T00:00:00Z',
   },
   {
@@ -28,6 +31,7 @@ export const MOCK_USERS: User[] = [
     name: 'Morgan',
     email: 'morgan@fullstack.dev',
     role: UserRole.CONTRIBUTOR,
+    avatarUrl: null,
     createdAt: '2025-12-01T00:00:00Z',
   },
   {
@@ -35,6 +39,7 @@ export const MOCK_USERS: User[] = [
     name: 'Casey',
     email: 'casey@fullstack.dev',
     role: UserRole.VIEWER,
+    avatarUrl: null,
     createdAt: '2025-12-15T00:00:00Z',
   },
 ];

@@ -10,7 +10,6 @@ import PersonIcon from '@mui/icons-material/PersonOutlined';
 import type { Task } from '@/lib/types';
 import { OwnerType, PRIORITY_LABELS } from '@/lib/constants';
 import type { TaskPriorityValue } from '@/lib/constants';
-import { getAgentName } from '@/features/agents/mock-data';
 
 const PRIORITY_COLORS: Record<TaskPriorityValue, string> = {
   low: '#9E9EB0',
@@ -21,13 +20,11 @@ const PRIORITY_COLORS: Record<TaskPriorityValue, string> = {
 
 interface TaskCardProps {
   task: Task;
+  ownerName?: string;
 }
 
-export default function TaskCard({ task }: TaskCardProps) {
-  const ownerName =
-    task.ownerType === OwnerType.AGENT
-      ? getAgentName(task.ownerId)
-      : task.ownerId.replace('user-', '');
+export default function TaskCard({ task, ownerName }: TaskCardProps) {
+  const displayName = ownerName ?? task.ownerId;
 
   return (
     <Card
@@ -50,7 +47,7 @@ export default function TaskCard({ task }: TaskCardProps) {
                 <PersonIcon sx={{ fontSize: 14 }} />
               )
             }
-            label={ownerName}
+            label={displayName}
             size="small"
             variant="outlined"
             sx={{ height: 22, fontSize: '0.7rem' }}

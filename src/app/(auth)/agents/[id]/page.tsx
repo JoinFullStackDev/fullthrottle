@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState, useEffect, useCallback } from 'react';
 import { notFound, useSearchParams } from 'next/navigation';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -15,39 +15,85 @@ import ListItemText from '@mui/material/ListItemText';
 import ListItemButton from '@mui/material/ListItemButton';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
-import { useState } from 'react';
-import { PageContainer, Header } from '@/components/layout';
-import { SectionContainer } from '@/components/layout';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import { PageContainer, Header, SectionContainer } from '@/components/layout';
 import { StatusBadge } from '@/components/shared';
-import { getAgentById } from '@/features/agents/mock-data';
-import { MOCK_TASKS } from '@/features/tasks/mock-data';
-import { MOCK_OVERRIDES } from '@/features/personas/mock-data';
+import { useAgent } from '@/features/agents/hooks/useAgents';
+import { listOverrides } from '@/features/personas/service';
+import { listTasksByOwner } from '@/features/tasks/service';
 import { TASK_STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
-import type { PersonaOverride } from '@/lib/types';
+import type { PersonaOverride, Task } from '@/lib/types';
 import PersonaEditorPanel from '@/features/personas/components/PersonaEditorPanel';
 
 export default function AgentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const searchParams = useSearchParams();
   const initialTab = Number(searchParams.get('tab') ?? 0);
-  const agent = getAgentById(id);
+  const { agent, isLoading, error } = useAgent(id);
   const [tab, setTab] = useState(initialTab);
   const [editingOverrideId, setEditingOverrideId] = useState<string | null>(null);
-  const [overrides, setOverrides] = useState<PersonaOverride[]>(
-    () => MOCK_OVERRIDES.filter((o) => o.agentId === id)
-  );
+
+  const [overrides, setOverrides] = useState<PersonaOverride[]>([]);
+  const [overridesLoading, setOverridesLoading] = useState(true);
+
+  const [agentTasks, setAgentTasks] = useState<Task[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(true);
+
+  const loadOverrides = useCallback(async () => {
+    setOverridesLoading(true);
+    try {
+      const data = await listOverrides(id);
+      setOverrides(data);
+    } catch {
+      setOverrides([]);
+    } finally {
+      setOverridesLoading(false);
+    }
+  }, [id]);
+
+  const loadTasks = useCallback(async () => {
+    setTasksLoading(true);
+    try {
+      const data = await listTasksByOwner(id);
+      setAgentTasks(data);
+    } catch {
+      setAgentTasks([]);
+    } finally {
+      setTasksLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    loadOverrides();
+    loadTasks();
+  }, [loadOverrides, loadTasks]);
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <CircularProgress />
+        </Box>
+      </PageContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageContainer>
+        <Alert severity="error">{error}</Alert>
+      </PageContainer>
+    );
+  }
 
   if (!agent) {
     notFound();
   }
 
-  const agentTasks = MOCK_TASKS.filter((t) => t.ownerId === agent.id);
-
-  const handleSaveOverride = (updated: PersonaOverride) => {
-    setOverrides((prev) =>
-      prev.map((o) => (o.id === updated.id ? updated : o))
-    );
+  const handleSaveOverride = async () => {
     setEditingOverrideId(null);
+    await loadOverrides();
   };
 
   return (
@@ -65,6 +111,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
         <CardContent>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
             <Avatar
+              src={`/agents/${agent.name.toLowerCase()}.png`}
               sx={{
                 bgcolor: 'primary.main',
                 width: 56,
@@ -81,8 +128,13 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                 <StatusBadge status={agent.status} />
               </Box>
               <Typography variant="body2" color="text.secondary">
-                {agent.role} &middot; Persona {agent.basePersonaVersion} &middot; Model: {agent.defaultModel}
+                {agent.role} &middot; Persona {agent.basePersonaVersion} &middot; {agent.provider}/{agent.defaultModel}
               </Typography>
+              {agent.description && (
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  {agent.description}
+                </Typography>
+              )}
             </Box>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Chip label={`${agentTasks.length} tasks`} size="small" variant="outlined" />
@@ -109,10 +161,14 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                 <Typography variant="body2">{agent.name}</Typography>
                 <Typography variant="caption" color="text.secondary">Role</Typography>
                 <Typography variant="body2">{agent.role}</Typography>
+                <Typography variant="caption" color="text.secondary">Description</Typography>
+                <Typography variant="body2">{agent.description || 'No description'}</Typography>
                 <Typography variant="caption" color="text.secondary">Status</Typography>
                 <Box><StatusBadge status={agent.status} /></Box>
                 <Typography variant="caption" color="text.secondary">Persona Version</Typography>
                 <Typography variant="body2">{agent.basePersonaVersion}</Typography>
+                <Typography variant="caption" color="text.secondary">Provider</Typography>
+                <Typography variant="body2">{agent.provider}</Typography>
                 <Typography variant="caption" color="text.secondary">Default Model</Typography>
                 <Typography variant="body2">{agent.defaultModel}</Typography>
                 <Typography variant="caption" color="text.secondary">Runtime Agent ID</Typography>
@@ -129,7 +185,9 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
 
       {tab === 1 && (
         <SectionContainer title="Persona Overrides">
-          {overrides.length === 0 ? (
+          {overridesLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+          ) : overrides.length === 0 ? (
             <Typography variant="body2" color="text.secondary">No overrides configured.</Typography>
           ) : (
             overrides.map((override) =>
@@ -167,7 +225,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                     </Typography>
                   </CardContent>
                 </Card>
-              )
+              ),
             )
           )}
         </SectionContainer>
@@ -175,7 +233,9 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
 
       {tab === 2 && (
         <SectionContainer title="Assigned Tasks">
-          {agentTasks.length === 0 ? (
+          {tasksLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+          ) : agentTasks.length === 0 ? (
             <Typography variant="body2" color="text.secondary">No tasks assigned.</Typography>
           ) : (
             <Card>
@@ -185,6 +245,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                     <ListItemButton sx={{ py: 1.5 }}>
                       <ListItemText
                         primary={task.title}
+                        secondaryTypographyProps={{ component: 'div' }}
                         secondary={
                           <Box component="span" sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
                             <Chip

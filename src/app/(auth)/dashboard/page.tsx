@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Card from '@mui/material/Card';
@@ -17,17 +18,21 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForwardOutlined';
 import Link from 'next/link';
 import { PageContainer, Header, SectionContainer } from '@/components/layout';
 import { StatCard } from '@/components/shared';
-import { MOCK_AGENTS } from '@/features/agents/mock-data';
-import { MOCK_TASKS } from '@/features/tasks/mock-data';
-import { MOCK_AUDIT_LOG } from '@/features/audit/mock-data';
-import { TaskStatus } from '@/lib/constants';
+import { getAgentCount } from '@/features/agents/service';
+import { getTaskCounts } from '@/features/tasks/service';
+import { listAuditLogs } from '@/features/audit/service';
+import type { AuditLogEntry } from '@/lib/types';
 
 export default function DashboardPage() {
-  const activeTasks = MOCK_TASKS.filter(
-    (t) => t.status === TaskStatus.IN_PROGRESS || t.status === TaskStatus.READY
-  ).length;
-  const reviewTasks = MOCK_TASKS.filter((t) => t.status === TaskStatus.REVIEW).length;
-  const recentActivity = MOCK_AUDIT_LOG.slice(0, 5);
+  const [agentCount, setAgentCount] = useState<number | null>(null);
+  const [taskCounts, setTaskCounts] = useState<{ total: number; active: number; review: number } | null>(null);
+  const [recentActivity, setRecentActivity] = useState<AuditLogEntry[]>([]);
+
+  useEffect(() => {
+    getAgentCount().then(setAgentCount).catch(() => setAgentCount(0));
+    getTaskCounts().then(setTaskCounts).catch(() => setTaskCounts({ total: 0, active: 0, review: 0 }));
+    listAuditLogs({ limit: 5 }).then(setRecentActivity).catch(() => {});
+  }, []);
 
   return (
     <PageContainer>
@@ -35,64 +40,54 @@ export default function DashboardPage() {
 
       <SectionContainer>
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          <StatCard
-            label="Agents"
-            value={MOCK_AGENTS.length}
-            icon={<SmartToyIcon />}
-          />
-          <StatCard
-            label="Active Tasks"
-            value={activeTasks}
-            icon={<AssignmentIcon />}
-          />
-          <StatCard
-            label="In Review"
-            value={reviewTasks}
-            icon={<RateReviewIcon />}
-          />
-          <StatCard
-            label="Total Tasks"
-            value={MOCK_TASKS.length}
-            icon={<AssignmentIcon />}
-          />
+          <StatCard label="Agents" value={agentCount ?? '—'} icon={<SmartToyIcon />} />
+          <StatCard label="Active Tasks" value={taskCounts?.active ?? '—'} icon={<AssignmentIcon />} />
+          <StatCard label="In Review" value={taskCounts?.review ?? '—'} icon={<RateReviewIcon />} />
+          <StatCard label="Total Tasks" value={taskCounts?.total ?? '—'} icon={<AssignmentIcon />} />
         </Box>
       </SectionContainer>
 
       <SectionContainer title="Recent Activity">
         <Card>
-          <List disablePadding>
-            {recentActivity.map((entry, idx) => (
-              <ListItemButton
-                key={entry.id}
-                divider={idx < recentActivity.length - 1}
-                sx={{ py: 1.5 }}
-              >
-                <ListItemIcon sx={{ minWidth: 36, color: 'text.secondary' }}>
-                  <HistoryIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText
-                  primary={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body2" color="text.primary">
-                        {entry.actorName}
-                      </Typography>
-                      <Chip
-                        label={entry.actionType.replace(/_/g, ' ')}
-                        size="small"
-                        variant="outlined"
-                        sx={{ height: 22, fontSize: '0.7rem' }}
-                      />
-                    </Box>
-                  }
-                  secondary={entry.reason}
-                  secondaryTypographyProps={{ variant: 'caption', noWrap: true }}
-                />
-                <Typography variant="caption" color="text.disabled" sx={{ ml: 2, whiteSpace: 'nowrap' }}>
-                  {new Date(entry.timestamp).toLocaleDateString()}
-                </Typography>
-              </ListItemButton>
-            ))}
-          </List>
+          {recentActivity.length === 0 ? (
+            <Box sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary">No recent activity</Typography>
+            </Box>
+          ) : (
+            <List disablePadding>
+              {recentActivity.map((entry, idx) => (
+                <ListItemButton
+                  key={entry.id}
+                  divider={idx < recentActivity.length - 1}
+                  sx={{ py: 1.5 }}
+                >
+                  <ListItemIcon sx={{ minWidth: 36, color: 'text.secondary' }}>
+                    <HistoryIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body2" color="text.primary">
+                          {entry.actorName}
+                        </Typography>
+                        <Chip
+                          label={entry.actionType.replace(/_/g, ' ')}
+                          size="small"
+                          variant="outlined"
+                          sx={{ height: 22, fontSize: '0.7rem' }}
+                        />
+                      </Box>
+                    }
+                    secondary={entry.reason}
+                    secondaryTypographyProps={{ variant: 'caption', noWrap: true }}
+                  />
+                  <Typography variant="caption" color="text.disabled" sx={{ ml: 2, whiteSpace: 'nowrap' }}>
+                    {new Date(entry.timestamp).toLocaleDateString()}
+                  </Typography>
+                </ListItemButton>
+              ))}
+            </List>
+          )}
         </Card>
       </SectionContainer>
 
@@ -107,28 +102,12 @@ export default function DashboardPage() {
               key={link.href}
               component={Link}
               href={link.href}
-              sx={{
-                flex: '1 1 0',
-                minWidth: 200,
-                textDecoration: 'none',
-                cursor: 'pointer',
-                transition: 'border-color 0.15s',
-              }}
+              sx={{ flex: '1 1 0', minWidth: 200, textDecoration: 'none', cursor: 'pointer', transition: 'border-color 0.15s' }}
             >
-              <CardContent
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  py: 2,
-                  '&:last-child': { pb: 2 },
-                }}
-              >
+              <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2, '&:last-child': { pb: 2 } }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                   <Box sx={{ color: 'primary.main' }}>{link.icon}</Box>
-                  <Typography variant="body1" fontWeight={500}>
-                    {link.label}
-                  </Typography>
+                  <Typography variant="body1" fontWeight={500}>{link.label}</Typography>
                 </Box>
                 <ArrowForwardIcon fontSize="small" sx={{ color: 'text.disabled' }} />
               </CardContent>

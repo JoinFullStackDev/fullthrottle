@@ -13,10 +13,10 @@ import StatusBadge from '@/components/shared/StatusBadge';
 import type { Agent } from '@/lib/types';
 import { AgentStatus } from '@/lib/constants';
 
-const AGENT_AVATARS: Record<string, string> = {
-  Axel: 'AX',
-  Riff: 'RF',
-  Torque: 'TQ',
+const AGENT_IMAGES: Record<string, string> = {
+  Axel: '/agents/axel.png',
+  Riff: '/agents/riff.png',
+  Torque: '/agents/torque.png',
 };
 
 interface AgentCardProps {
@@ -33,6 +33,7 @@ export default function AgentCard({ agent, taskCount = 0, onDisable }: AgentCard
       <CardContent sx={{ flex: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
           <Avatar
+            src={AGENT_IMAGES[agent.name]}
             sx={{
               bgcolor: 'primary.main',
               width: 44,
@@ -41,7 +42,7 @@ export default function AgentCard({ agent, taskCount = 0, onDisable }: AgentCard
               fontWeight: 700,
             }}
           >
-            {AGENT_AVATARS[agent.name] ?? agent.name.slice(0, 2).toUpperCase()}
+            {agent.name.slice(0, 2).toUpperCase()}
           </Avatar>
           <Box sx={{ flex: 1 }}>
             <Typography variant="h3">{agent.name}</Typography>
@@ -50,13 +51,19 @@ export default function AgentCard({ agent, taskCount = 0, onDisable }: AgentCard
           <StatusBadge status={agent.status} />
         </Box>
 
+        {agent.description && (
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            {agent.description}
+          </Typography>
+        )}
+
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1.5 }}>
           <Chip label={`Persona ${agent.basePersonaVersion}`} size="small" variant="outlined" />
           <Chip label={`${taskCount} task${taskCount !== 1 ? 's' : ''}`} size="small" variant="outlined" />
         </Box>
 
         <Typography variant="caption" color="text.disabled">
-          Model: {agent.defaultModel}
+          {agent.provider}/{agent.defaultModel}
         </Typography>
       </CardContent>
       <CardActions sx={{ px: 2, pb: 2, pt: 0 }}>

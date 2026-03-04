@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
@@ -16,6 +16,8 @@ import ListItemText from '@mui/material/ListItemText';
 import Chip from '@mui/material/Chip';
 import Card from '@mui/material/Card';
 import Divider from '@mui/material/Divider';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
 import ViewColumnIcon from '@mui/icons-material/ViewColumnOutlined';
 import ViewListIcon from '@mui/icons-material/ViewListOutlined';
 import AddIcon from '@mui/icons-material/AddOutlined';
@@ -25,22 +27,31 @@ import { PageContainer, Header } from '@/components/layout';
 import KanbanBoard from '@/features/tasks/components/KanbanBoard';
 import TaskForm from '@/features/tasks/components/TaskForm';
 import type { TaskFormData } from '@/features/tasks/components/TaskForm';
-import { MOCK_TASKS } from '@/features/tasks/mock-data';
-import { MOCK_AGENTS, getAgentName } from '@/features/agents/mock-data';
+import { useTasks } from '@/features/tasks/hooks/useTasks';
+import { createTask, updateTaskStatus } from '@/features/tasks/service';
+import { useAgents } from '@/features/agents/hooks/useAgents';
+import { useAuth } from '@/hooks/useAuth';
+import { listProfiles } from '@/lib/services/profiles';
+import type { User } from '@/lib/types';
 import {
   OwnerType,
-  TaskStatus,
   TASK_STATUS_LABELS,
   PRIORITY_LABELS,
 } from '@/lib/constants';
-import type { Task } from '@/lib/types';
-import type { TaskStatusValue, TaskPriorityValue, OwnerTypeValue } from '@/lib/constants';
+import type { TaskStatusValue, TaskPriorityValue } from '@/lib/constants';
 
 export default function TasksPage() {
   const [view, setView] = useState<'kanban' | 'list'>('kanban');
   const [formOpen, setFormOpen] = useState(false);
-  const [tasks, setTasks] = useState<Task[]>([...MOCK_TASKS]);
+  const { tasks, setTasks, isLoading, error, refetch } = useTasks();
+  const { agents } = useAgents();
+  const { user } = useAuth();
+  const [profiles, setProfiles] = useState<User[]>([]);
   const [filterOwner, setFilterOwner] = useState<string>('all');
+
+  useEffect(() => {
+    listProfiles().then(setProfiles).catch(() => {});
+  }, []);
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [filterProject, setFilterProject] = useState<string>('all');
 
@@ -63,30 +74,52 @@ export default function TasksPage() {
     return result;
   }, [tasks, filterOwner, filterPriority, filterProject]);
 
-  const handleCreateTask = (data: TaskFormData) => {
-    const newTask: Task = {
-      id: `task-${Date.now()}`,
-      title: data.title,
-      description: data.description,
-      status: TaskStatus.BACKLOG,
-      ownerType: data.ownerType as OwnerTypeValue,
-      ownerId: data.ownerId,
-      priority: data.priority as TaskPriorityValue,
-      projectTag: data.projectTag,
-      runtimeRunId: null,
-      lastRuntimeStatus: null,
-      createdBy: 'user-spencer',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setTasks((prev) => [newTask, ...prev]);
+  const ownerNames = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const a of agents) map[a.id] = a.name;
+    for (const p of profiles) map[p.id] = p.name;
+    return map;
+  }, [agents, profiles]);
+
+  const getOwnerName = (ownerId: string) => ownerNames[ownerId] ?? ownerId;
+
+  const handleCreateTask = async (data: TaskFormData) => {
+    if (!user) return;
+    try {
+      const newTask = await createTask({
+        title: data.title,
+        description: data.description,
+        ownerType: data.ownerType as 'human' | 'agent',
+        ownerId: data.ownerId,
+        priority: data.priority as TaskPriorityValue,
+        projectTag: data.projectTag,
+        createdBy: user.id,
+      });
+      setTasks((prev) => [newTask, ...prev]);
+    } catch {
+      refetch();
+    }
   };
 
-  const handleTaskMove = (taskId: string, newStatus: TaskStatusValue) => {
+  const handleTaskMove = async (taskId: string, newStatus: TaskStatusValue) => {
     setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
+      prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)),
     );
+    try {
+      await updateTaskStatus(taskId, newStatus);
+    } catch {
+      refetch();
+    }
   };
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <Header title="Tasks" subtitle="Task management and Kanban board" />
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -94,23 +127,16 @@ export default function TasksPage() {
         title="Tasks"
         subtitle="Task management and Kanban board"
         actions={
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setFormOpen(true)}
-          >
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setFormOpen(true)}>
             New Task
           </Button>
         }
       />
 
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-        <ToggleButtonGroup
-          value={view}
-          exclusive
-          onChange={(_, v) => v && setView(v)}
-          size="small"
-        >
+        <ToggleButtonGroup value={view} exclusive onChange={(_, v) => v && setView(v)} size="small">
           <ToggleButton value="kanban" aria-label="Kanban view">
             <ViewColumnIcon fontSize="small" sx={{ mr: 0.5 }} />
             <Typography variant="caption">Kanban</Typography>
@@ -123,26 +149,17 @@ export default function TasksPage() {
 
         <FormControl size="small" sx={{ minWidth: 140 }}>
           <InputLabel>Owner</InputLabel>
-          <Select
-            value={filterOwner}
-            label="Owner"
-            onChange={(e) => setFilterOwner(e.target.value)}
-          >
+          <Select value={filterOwner} label="Owner" onChange={(e) => setFilterOwner(e.target.value)}>
             <MenuItem value="all">All Owners</MenuItem>
-            {MOCK_AGENTS.map((a) => (
+            {agents.map((a) => (
               <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>
             ))}
-            <MenuItem value="user-spencer">Spencer</MenuItem>
           </Select>
         </FormControl>
 
         <FormControl size="small" sx={{ minWidth: 140 }}>
           <InputLabel>Priority</InputLabel>
-          <Select
-            value={filterPriority}
-            label="Priority"
-            onChange={(e) => setFilterPriority(e.target.value)}
-          >
+          <Select value={filterPriority} label="Priority" onChange={(e) => setFilterPriority(e.target.value)}>
             <MenuItem value="all">All Priorities</MenuItem>
             {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
               <MenuItem key={value} value={value}>{label}</MenuItem>
@@ -152,11 +169,7 @@ export default function TasksPage() {
 
         <FormControl size="small" sx={{ minWidth: 140 }}>
           <InputLabel>Project</InputLabel>
-          <Select
-            value={filterProject}
-            label="Project"
-            onChange={(e) => setFilterProject(e.target.value)}
-          >
+          <Select value={filterProject} label="Project" onChange={(e) => setFilterProject(e.target.value)}>
             <MenuItem value="all">All Projects</MenuItem>
             {projectTags.map((tag) => (
               <MenuItem key={tag} value={tag}>{tag}</MenuItem>
@@ -170,65 +183,50 @@ export default function TasksPage() {
       </Box>
 
       {view === 'kanban' ? (
-        <KanbanBoard tasks={filteredTasks} onTaskMove={handleTaskMove} />
+        <KanbanBoard tasks={filteredTasks} ownerNames={ownerNames} onTaskMove={handleTaskMove} />
       ) : (
         <Card>
           <List disablePadding>
-            {filteredTasks.map((task, idx) => {
-              const ownerName =
-                task.ownerType === OwnerType.AGENT
-                  ? getAgentName(task.ownerId)
-                  : task.ownerId.replace('user-', '');
-              return (
-                <Box key={task.id}>
-                  <ListItemButton sx={{ py: 1.5 }}>
-                    <ListItemText
-                      primary={
-                        <Typography variant="body2" fontWeight={500}>
-                          {task.title}
-                        </Typography>
-                      }
-                      secondary={
-                        <Box component="span" sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
-                          <Chip
-                            label={TASK_STATUS_LABELS[task.status]}
-                            size="small"
-                            variant="outlined"
-                            sx={{ height: 22, fontSize: '0.7rem' }}
-                          />
-                          <Chip
-                            icon={
-                              task.ownerType === OwnerType.AGENT
-                                ? <SmartToyIcon sx={{ fontSize: 14 }} />
-                                : <PersonIcon sx={{ fontSize: 14 }} />
-                            }
-                            label={ownerName}
-                            size="small"
-                            variant="outlined"
-                            sx={{ height: 22, fontSize: '0.7rem' }}
-                          />
-                          <Chip
-                            label={PRIORITY_LABELS[task.priority]}
-                            size="small"
-                            variant="outlined"
-                            sx={{ height: 22, fontSize: '0.7rem' }}
-                          />
-                        </Box>
-                      }
-                    />
-                    <Typography variant="caption" color="text.disabled" sx={{ whiteSpace: 'nowrap' }}>
-                      {new Date(task.createdAt).toLocaleDateString()}
-                    </Typography>
-                  </ListItemButton>
-                  {idx < filteredTasks.length - 1 && <Divider />}
-                </Box>
-              );
-            })}
+            {filteredTasks.map((task, idx) => (
+              <Box key={task.id}>
+                <ListItemButton sx={{ py: 1.5 }}>
+                  <ListItemText
+                    primary={
+                      <Typography variant="body2" fontWeight={500}>{task.title}</Typography>
+                    }
+                    secondary={
+                      <Box component="span" sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
+                        <Chip
+                          label={TASK_STATUS_LABELS[task.status]}
+                          size="small" variant="outlined"
+                          sx={{ height: 22, fontSize: '0.7rem' }}
+                        />
+                        <Chip
+                          icon={task.ownerType === OwnerType.AGENT ? <SmartToyIcon sx={{ fontSize: 14 }} /> : <PersonIcon sx={{ fontSize: 14 }} />}
+                          label={getOwnerName(task.ownerId)}
+                          size="small" variant="outlined"
+                          sx={{ height: 22, fontSize: '0.7rem' }}
+                        />
+                        <Chip
+                          label={PRIORITY_LABELS[task.priority]}
+                          size="small" variant="outlined"
+                          sx={{ height: 22, fontSize: '0.7rem' }}
+                        />
+                      </Box>
+                    }
+                  />
+                  <Typography variant="caption" color="text.disabled" sx={{ whiteSpace: 'nowrap' }}>
+                    {new Date(task.createdAt).toLocaleDateString()}
+                  </Typography>
+                </ListItemButton>
+                {idx < filteredTasks.length - 1 && <Divider />}
+              </Box>
+            ))}
           </List>
         </Card>
       )}
 
-      <TaskForm open={formOpen} onClose={() => setFormOpen(false)} onSubmit={handleCreateTask} />
+      <TaskForm open={formOpen} onClose={() => setFormOpen(false)} onSubmit={handleCreateTask} agents={agents} users={profiles} />
     </PageContainer>
   );
 }

@@ -18,10 +18,11 @@ import TaskCard from './TaskCard';
 
 interface KanbanBoardProps {
   tasks: Task[];
+  ownerNames?: Record<string, string>;
   onTaskMove?: (taskId: string, newStatus: TaskStatusValue) => void;
 }
 
-export default function KanbanBoard({ tasks: initialTasks, onTaskMove }: KanbanBoardProps) {
+export default function KanbanBoard({ tasks: initialTasks, ownerNames, onTaskMove }: KanbanBoardProps) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
 
   const getColumnTasks = useCallback(
@@ -111,7 +112,7 @@ export default function KanbanBoard({ tasks: initialTasks, onTaskMove }: KanbanB
                               opacity: dragSnapshot.isDragging ? 0.9 : 1,
                             }}
                           >
-                            <TaskCard task={task} />
+                            <TaskCard task={task} ownerName={ownerNames?.[task.ownerId]} />
                           </Box>
                         )}
                       </Draggable>

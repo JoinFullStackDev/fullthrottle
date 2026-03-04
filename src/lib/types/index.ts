@@ -7,15 +7,20 @@ import type {
   OverrideScopeTypeValue,
   RiskToleranceValue,
   SenderTypeValue,
+  ConversationChannelValue,
+  IntegrationTypeValue,
+  IntegrationStatusValue,
 } from '../constants';
 
 export interface Agent {
   id: string;
   name: string;
   role: string;
+  description: string;
   basePersonaVersion: string;
   status: AgentStatusValue;
   defaultModel: string;
+  provider: string;
   runtimeAgentId: string | null;
   createdAt: string;
   updatedAt: string;
@@ -85,6 +90,10 @@ export interface Conversation {
   agentId: string;
   agentName?: string;
   createdBy: string;
+  channel: ConversationChannelValue;
+  title: string | null;
+  externalThreadId: string | null;
+  externalChannelId: string | null;
   messageCount?: number;
   createdAt: string;
 }
@@ -94,6 +103,7 @@ export interface ConversationMessage {
   conversationId: string;
   senderType: SenderTypeValue;
   senderName?: string;
+  senderAvatarUrl?: string;
   content: string;
   metadata?: Record<string, unknown>;
   createdAt: string;
@@ -104,6 +114,7 @@ export interface User {
   name: string;
   email: string;
   role: UserRoleValue;
+  avatarUrl: string | null;
   createdAt: string;
 }
 
@@ -134,5 +145,41 @@ export interface KnowledgeSource {
   name: string;
   type: string;
   path: string;
+  sourceType: string;
+  externalId: string | null;
+  integrationId: string | null;
+  agentId: string | null;
+  agentName?: string;
+  folderTag: string | null;
+  projectTag: string | null;
+  contentHash: string | null;
+  lastFetchedAt: string | null;
+  lastModifiedAt: string | null;
+  fetchStatus: string;
+  refreshIntervalMinutes: number;
+  mimeType: string | null;
   createdAt: string;
+}
+
+export interface KnowledgeContent {
+  id: string;
+  sourceId: string;
+  content: string;
+  chunkIndex: number;
+  charCount: number;
+  fetchedAt: string;
+}
+
+export interface Integration {
+  id: string;
+  type: IntegrationTypeValue;
+  agentId: string | null;
+  agentName?: string;
+  status: IntegrationStatusValue;
+  config: Record<string, unknown>;
+  hasCredentials: boolean;
+  createdBy: string;
+  updatedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
 }

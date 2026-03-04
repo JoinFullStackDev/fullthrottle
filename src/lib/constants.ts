@@ -93,3 +93,42 @@ export const SenderType = {
   SYSTEM: 'system',
 } as const;
 export type SenderTypeValue = (typeof SenderType)[keyof typeof SenderType];
+
+export const ConversationChannel = {
+  WEB: 'web',
+  SLACK: 'slack',
+} as const;
+export type ConversationChannelValue = (typeof ConversationChannel)[keyof typeof ConversationChannel];
+
+export const CHANNEL_LABELS: Record<ConversationChannelValue, string> = {
+  [ConversationChannel.WEB]: 'Web',
+  [ConversationChannel.SLACK]: 'Slack',
+};
+
+export const IntegrationType = {
+  SLACK: 'slack',
+  GITLAB: 'gitlab',
+  GOOGLE_DRIVE: 'google_drive',
+} as const;
+export type IntegrationTypeValue = (typeof IntegrationType)[keyof typeof IntegrationType];
+
+export const INTEGRATION_LABELS: Record<IntegrationTypeValue, string> = {
+  [IntegrationType.SLACK]: 'Slack',
+  [IntegrationType.GITLAB]: 'GitLab',
+  [IntegrationType.GOOGLE_DRIVE]: 'Google Drive',
+};
+
+export const IntegrationStatus = {
+  NOT_CONFIGURED: 'not_configured',
+  CONFIGURED: 'configured',
+  CONNECTED: 'connected',
+  ERROR: 'error',
+} as const;
+export type IntegrationStatusValue = (typeof IntegrationStatus)[keyof typeof IntegrationStatus];
+
+export const INTEGRATION_STATUS_LABELS: Record<IntegrationStatusValue, string> = {
+  [IntegrationStatus.NOT_CONFIGURED]: 'Not Configured',
+  [IntegrationStatus.CONFIGURED]: 'Configured',
+  [IntegrationStatus.CONNECTED]: 'Connected',
+  [IntegrationStatus.ERROR]: 'Error',
+};
