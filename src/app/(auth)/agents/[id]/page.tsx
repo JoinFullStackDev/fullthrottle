@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState, useEffect, useCallback } from 'react';
+import { use, useState, useEffect, useCallback, useRef } from 'react';
 import { notFound, useSearchParams } from 'next/navigation';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -19,20 +19,28 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
 import { PageContainer, Header, SectionContainer } from '@/components/layout';
 import { StatusBadge } from '@/components/shared';
+import IconButton from '@mui/material/IconButton';
+import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import { useAgent } from '@/features/agents/hooks/useAgents';
+import { uploadAgentAvatar, updateAgent } from '@/features/agents/service';
 import { listOverrides } from '@/features/personas/service';
 import { listTasksByOwner } from '@/features/tasks/service';
 import { TASK_STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
 import type { PersonaOverride, Task } from '@/lib/types';
 import PersonaEditorPanel from '@/features/personas/components/PersonaEditorPanel';
+import PersonaGeneratorPrompt from '@/features/personas/components/PersonaGeneratorPrompt';
+import AgentOverviewTab from '@/features/agents/components/AgentOverviewTab';
+import AgentContextTab from '@/features/agents/components/AgentContextTab';
 
 export default function AgentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const searchParams = useSearchParams();
   const initialTab = Number(searchParams.get('tab') ?? 0);
-  const { agent, isLoading, error } = useAgent(id);
+  const { agent, isLoading, error, refetch } = useAgent(id);
   const [tab, setTab] = useState(initialTab);
   const [editingOverrideId, setEditingOverrideId] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   const [overrides, setOverrides] = useState<PersonaOverride[]>([]);
   const [overridesLoading, setOverridesLoading] = useState(true);
@@ -96,6 +104,26 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
     await loadOverrides();
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const accepted = ['image/png', 'image/jpeg', 'image/webp'];
+    if (!accepted.includes(file.type)) return;
+    if (file.size > 2 * 1024 * 1024) return;
+
+    setAvatarUploading(true);
+    try {
+      const avatarUrl = await uploadAgentAvatar(agent.id, file);
+      await updateAgent(agent.id, { avatarUrl });
+      refetch();
+    } catch {
+      // silently fail for avatar upload
+    } finally {
+      setAvatarUploading(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
+  };
+
   return (
     <PageContainer>
       <Header
@@ -110,18 +138,52 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            <Avatar
-              src={`/agents/${agent.name.toLowerCase()}.png`}
-              sx={{
-                bgcolor: 'primary.main',
-                width: 56,
-                height: 56,
-                fontSize: '1.125rem',
-                fontWeight: 700,
-              }}
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              hidden
+              onChange={handleAvatarUpload}
+            />
+            <IconButton
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={avatarUploading}
+              sx={{ p: 0, position: 'relative' }}
+              aria-label="Change avatar"
             >
-              {agent.name.slice(0, 2).toUpperCase()}
-            </Avatar>
+              <Avatar
+                src={agent.avatarUrl ?? `/agents/${agent.name.toLowerCase()}.png`}
+                sx={{
+                  bgcolor: 'primary.main',
+                  width: 56,
+                  height: 56,
+                  fontSize: '1.125rem',
+                  fontWeight: 700,
+                }}
+              >
+                {agent.name.slice(0, 2).toUpperCase()}
+              </Avatar>
+              <Box
+                sx={{
+                  position: 'absolute',
+                  inset: 0,
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  bgcolor: 'rgba(0,0,0,0.45)',
+                  opacity: 0,
+                  transition: 'opacity 0.2s',
+                  '&:hover': { opacity: 1 },
+                }}
+              >
+                {avatarUploading ? (
+                  <CircularProgress size={20} sx={{ color: 'common.white' }} />
+                ) : (
+                  <CameraAltIcon sx={{ fontSize: 20, color: 'common.white' }} />
+                )}
+              </Box>
+            </IconButton>
             <Box sx={{ flex: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 0.5 }}>
                 <Typography variant="h2">{agent.name}</Typography>
@@ -149,46 +211,18 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
           <Tab label="Overview" />
           <Tab label="Persona Overrides" />
           <Tab label="Assigned Tasks" />
+          <Tab label="Context" />
         </Tabs>
       </Box>
 
-      {tab === 0 && (
-        <SectionContainer title="Agent Details">
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 2 }}>
-                <Typography variant="caption" color="text.secondary">Name</Typography>
-                <Typography variant="body2">{agent.name}</Typography>
-                <Typography variant="caption" color="text.secondary">Role</Typography>
-                <Typography variant="body2">{agent.role}</Typography>
-                <Typography variant="caption" color="text.secondary">Description</Typography>
-                <Typography variant="body2">{agent.description || 'No description'}</Typography>
-                <Typography variant="caption" color="text.secondary">Status</Typography>
-                <Box><StatusBadge status={agent.status} /></Box>
-                <Typography variant="caption" color="text.secondary">Persona Version</Typography>
-                <Typography variant="body2">{agent.basePersonaVersion}</Typography>
-                <Typography variant="caption" color="text.secondary">Provider</Typography>
-                <Typography variant="body2">{agent.provider}</Typography>
-                <Typography variant="caption" color="text.secondary">Default Model</Typography>
-                <Typography variant="body2">{agent.defaultModel}</Typography>
-                <Typography variant="caption" color="text.secondary">Runtime Agent ID</Typography>
-                <Typography variant="body2" color="text.disabled">
-                  {agent.runtimeAgentId ?? 'Not connected'}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">Created</Typography>
-                <Typography variant="body2">{new Date(agent.createdAt).toLocaleDateString()}</Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </SectionContainer>
-      )}
+      {tab === 0 && <AgentOverviewTab agent={agent} onSaved={refetch} />}
 
       {tab === 1 && (
         <SectionContainer title="Persona Overrides">
           {overridesLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
           ) : overrides.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">No overrides configured.</Typography>
+            <PersonaGeneratorPrompt agentId={id} onGenerated={loadOverrides} />
           ) : (
             overrides.map((override) =>
               editingOverrideId === override.id ? (
@@ -270,6 +304,12 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
               </List>
             </Card>
           )}
+        </SectionContainer>
+      )}
+
+      {tab === 3 && (
+        <SectionContainer title="Context">
+          <AgentContextTab agentId={id} />
         </SectionContainer>
       )}
     </PageContainer>

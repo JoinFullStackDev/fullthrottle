@@ -22,6 +22,16 @@ export interface Agent {
   defaultModel: string;
   provider: string;
   runtimeAgentId: string | null;
+  avatarUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AgentContext {
+  id: string;
+  agentId: string;
+  key: string;
+  value: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -117,6 +127,8 @@ export interface User {
   email: string;
   role: UserRoleValue;
   avatarUrl: string | null;
+  invitedAt: string | null;
+  onboardedAt: string | null;
   createdAt: string;
 }
 

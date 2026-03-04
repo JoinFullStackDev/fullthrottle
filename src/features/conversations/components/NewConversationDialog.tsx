@@ -42,7 +42,7 @@ export default function NewConversationDialog({
             >
               <ListItemAvatar>
                 <Avatar
-                  src={`/agents/${agent.name.toLowerCase()}.png`}
+                  src={agent.avatarUrl ?? `/agents/${agent.name.toLowerCase()}.png`}
                   sx={{ bgcolor: 'primary.main' }}
                 >
                   <SmartToyIcon />

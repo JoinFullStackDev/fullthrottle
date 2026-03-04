@@ -13,6 +13,7 @@ interface MessageHeaderProps {
   senderType: SenderTypeValue;
   senderName?: string;
   avatarUrl?: string;
+  agentAvatarUrl?: string;
   agentName?: string;
   timestamp: string;
   direction: 'row' | 'row-reverse';
@@ -32,6 +33,7 @@ export default function MessageHeader({
   senderType,
   senderName,
   avatarUrl,
+  agentAvatarUrl,
   agentName,
   timestamp,
   direction,
@@ -40,7 +42,9 @@ export default function MessageHeader({
   const isSystem = senderType === SenderType.SYSTEM;
 
   const agentAvatarName = agentName ?? (isAgent && senderName ? senderName : undefined);
-  const agentSrc = isAgent && agentAvatarName ? `/agents/${agentAvatarName.toLowerCase()}.png` : undefined;
+  const agentSrc = isAgent
+    ? (agentAvatarUrl ?? (agentAvatarName ? `/agents/${agentAvatarName.toLowerCase()}.png` : undefined))
+    : undefined;
   const humanSrc = !isAgent && !isSystem ? avatarUrl : undefined;
   const src = agentSrc ?? humanSrc;
 

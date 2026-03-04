@@ -16,6 +16,8 @@ export interface Database {
           email: string;
           role: 'super_admin' | 'admin' | 'team_lead' | 'contributor' | 'viewer';
           avatar_url: string | null;
+          invited_at: string | null;
+          onboarded_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -24,6 +26,8 @@ export interface Database {
           email: string;
           role?: 'super_admin' | 'admin' | 'team_lead' | 'contributor' | 'viewer';
           avatar_url?: string | null;
+          invited_at?: string | null;
+          onboarded_at?: string | null;
           created_at?: string;
         };
         Update: {
@@ -32,6 +36,8 @@ export interface Database {
           email?: string;
           role?: 'super_admin' | 'admin' | 'team_lead' | 'contributor' | 'viewer';
           avatar_url?: string | null;
+          invited_at?: string | null;
+          onboarded_at?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -47,6 +53,7 @@ export interface Database {
           default_model: string;
           provider: string;
           runtime_agent_id: string | null;
+          avatar_url: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -60,6 +67,7 @@ export interface Database {
           default_model?: string;
           provider?: string;
           runtime_agent_id?: string | null;
+          avatar_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -73,10 +81,46 @@ export interface Database {
           default_model?: string;
           provider?: string;
           runtime_agent_id?: string | null;
+          avatar_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Relationships: [];
+      };
+      agent_context: {
+        Row: {
+          id: string;
+          agent_id: string;
+          key: string;
+          value: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          agent_id: string;
+          key: string;
+          value?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          agent_id?: string;
+          key?: string;
+          value?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'agent_context_agent_id_fkey';
+            columns: ['agent_id'];
+            isOneToOne: false;
+            referencedRelation: 'agents';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       persona_overrides: {
         Row: {

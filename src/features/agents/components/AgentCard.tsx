@@ -13,7 +13,7 @@ import StatusBadge from '@/components/shared/StatusBadge';
 import type { Agent } from '@/lib/types';
 import { AgentStatus } from '@/lib/constants';
 
-const AGENT_IMAGES: Record<string, string> = {
+const AGENT_IMAGES_FALLBACK: Record<string, string> = {
   Axel: '/agents/axel.png',
   Riff: '/agents/riff.png',
   Torque: '/agents/torque.png',
@@ -33,7 +33,7 @@ export default function AgentCard({ agent, taskCount = 0, onDisable }: AgentCard
       <CardContent sx={{ flex: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
           <Avatar
-            src={AGENT_IMAGES[agent.name]}
+            src={agent.avatarUrl ?? AGENT_IMAGES_FALLBACK[agent.name]}
             sx={{
               bgcolor: 'primary.main',
               width: 44,

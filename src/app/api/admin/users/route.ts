@@ -60,3 +60,25 @@ export async function PATCH(request: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
 }
+
+export async function DELETE(request: Request) {
+  const role = await getCallerRole();
+  if (!role || !['super_admin', 'admin'].includes(role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const userId = searchParams.get('userId');
+
+  if (!userId) {
+    return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+  }
+
+  const svc = createServiceRoleClient();
+
+  // Deleting the auth user cascades to the profiles row (ON DELETE CASCADE)
+  const { error } = await svc.auth.admin.deleteUser(userId);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ success: true });
+}

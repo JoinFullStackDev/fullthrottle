@@ -11,6 +11,8 @@ function rowToUser(row: ProfileRow): User {
     email: row.email,
     role: row.role,
     avatarUrl: row.avatar_url,
+    invitedAt: row.invited_at,
+    onboardedAt: row.onboarded_at,
     createdAt: row.created_at,
   };
 }
@@ -32,7 +34,7 @@ export async function uploadAvatar(userId: string, file: File): Promise<string> 
 
 export async function updateProfile(
   id: string,
-  updates: { name?: string; avatar_url?: string | null },
+  updates: { name?: string; avatar_url?: string | null; onboarded_at?: string | null },
 ): Promise<User> {
   const supabase = createBrowserSupabaseClient();
   const { data, error } = await supabase

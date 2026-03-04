@@ -19,6 +19,8 @@ function profileToUser(profile: Tables<'profiles'>): User {
     email: profile.email,
     role: profile.role,
     avatarUrl: profile.avatar_url,
+    invitedAt: profile.invited_at,
+    onboardedAt: profile.onboarded_at,
     createdAt: profile.created_at,
   };
 }

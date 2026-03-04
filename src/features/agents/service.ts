@@ -16,6 +16,7 @@ function rowToAgent(row: AgentRow): Agent {
     defaultModel: row.default_model,
     provider: row.provider,
     runtimeAgentId: row.runtime_agent_id,
+    avatarUrl: row.avatar_url,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -52,9 +53,64 @@ interface AuditContext {
   reason: string;
 }
 
+type CreateAgentInput = Pick<Agent, 'name' | 'role' | 'description' | 'status' | 'defaultModel' | 'provider' | 'basePersonaVersion'>;
+
+export async function createAgent(
+  input: CreateAgentInput,
+  audit?: AuditContext,
+): Promise<Agent> {
+  const supabase = createBrowserSupabaseClient();
+
+  const { data, error } = await supabase
+    .from('agents')
+    .insert({
+      name: input.name,
+      role: input.role,
+      description: input.description,
+      status: input.status,
+      default_model: input.defaultModel,
+      provider: input.provider,
+      base_persona_version: input.basePersonaVersion,
+    })
+    .select('*')
+    .single();
+
+  if (error) throw new Error(error.message);
+  const created = rowToAgent(data as AgentRow);
+
+  if (audit) {
+    await createAuditEntry({
+      actorId: audit.actorId,
+      actionType: 'agent_created',
+      entityType: 'Agent',
+      entityId: created.id,
+      beforeState: null,
+      afterState: { name: created.name, role: created.role, status: created.status },
+      reason: audit.reason,
+    }).catch(() => {});
+  }
+
+  return created;
+}
+
+export async function uploadAgentAvatar(agentId: string, file: File): Promise<string> {
+  const supabase = createBrowserSupabaseClient();
+  const ext = file.name.split('.').pop() ?? 'png';
+  const path = `agents/${agentId}/avatar.${ext}`;
+
+  const { error } = await supabase.storage
+    .from('avatars')
+    .upload(path, file, { upsert: true });
+
+  if (error) throw new Error(error.message);
+
+  const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
+  return `${urlData.publicUrl}?t=${Date.now()}`;
+}
+
 export async function updateAgent(
   id: string,
-  updates: Partial<Pick<Agent, 'name' | 'role' | 'description' | 'status' | 'defaultModel' | 'provider' | 'basePersonaVersion'>>,
+  updates: Partial<Pick<Agent, 'name' | 'role' | 'description' | 'status' | 'defaultModel' | 'provider' | 'basePersonaVersion' | 'avatarUrl'>>,
   audit?: AuditContext,
 ): Promise<Agent> {
   const supabase = createBrowserSupabaseClient();
@@ -69,6 +125,7 @@ export async function updateAgent(
   if (updates.defaultModel !== undefined) payload.default_model = updates.defaultModel;
   if (updates.provider !== undefined) payload.provider = updates.provider;
   if (updates.basePersonaVersion !== undefined) payload.base_persona_version = updates.basePersonaVersion;
+  if (updates.avatarUrl !== undefined) payload.avatar_url = updates.avatarUrl;
 
   const { data, error } = await supabase
     .from('agents')

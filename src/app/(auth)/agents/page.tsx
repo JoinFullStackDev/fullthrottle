@@ -1,8 +1,11 @@
 'use client';
 
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
+import AddIcon from '@mui/icons-material/Add';
+import Link from 'next/link';
 import { PageContainer, Header } from '@/components/layout';
 import AgentCard from '@/features/agents/components/AgentCard';
 import { useAgents } from '@/features/agents/hooks/useAgents';
@@ -30,7 +33,21 @@ export default function AgentsPage() {
 
   return (
     <PageContainer>
-      <Header title="Agents" subtitle="Manage AI agent personas and configuration" />
+      <Header
+        title="Agents"
+        subtitle="Manage AI agent personas and configuration"
+        actions={
+          <Button
+            component={Link}
+            href="/agents/new"
+            variant="contained"
+            startIcon={<AddIcon />}
+            size="small"
+          >
+            New Agent
+          </Button>
+        }
+      />
 
       {isLoading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>

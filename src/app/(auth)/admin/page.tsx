@@ -51,6 +51,7 @@ import ErrorIcon from '@mui/icons-material/ErrorOutlined';
 import WarningIcon from '@mui/icons-material/WarningAmberOutlined';
 import HelpIcon from '@mui/icons-material/HelpOutlineOutlined';
 import Checkbox from '@mui/material/Checkbox';
+import PersonAddIcon from '@mui/icons-material/PersonAddOutlined';
 import { PageContainer, Header, SectionContainer } from '@/components/layout';
 import UsageStatBlock from '@/features/usage/components/UsageStatBlock';
 import { listAuditLogs } from '@/features/audit/service';
@@ -448,6 +449,75 @@ export default function AdminPage() {
   const allRoles: UserRoleValue[] = [
     UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEAM_LEAD, UserRole.CONTRIBUTOR, UserRole.VIEWER,
   ];
+
+  // ===== Invite state =====
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<UserRoleValue>(UserRole.VIEWER);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
+
+  const handleInvite = async () => {
+    if (!inviteEmail.trim()) return;
+    setInviteLoading(true);
+    setInviteError(null);
+    setInviteSuccess(null);
+    try {
+      const res = await fetch('/api/admin/users/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: inviteEmail.trim(), role: inviteRole }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setInviteError(data.error || 'Invite failed');
+        setInviteLoading(false);
+        return;
+      }
+      setInviteSuccess(`Invitation sent to ${inviteEmail.trim()}`);
+      setInviteEmail('');
+      setInviteRole(UserRole.VIEWER);
+      listProfiles()
+        .then((profiles) => setUsers(profiles))
+        .catch(() => {});
+    } catch (err) {
+      setInviteError((err as Error).message);
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  const handleInviteClose = () => {
+    setInviteOpen(false);
+    setInviteEmail('');
+    setInviteRole(UserRole.VIEWER);
+    setInviteError(null);
+    setInviteSuccess(null);
+  };
+
+  // ===== Delete user state =====
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const handleDeleteUser = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      const res = await fetch(`/api/admin/users?userId=${deleteTarget.id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setInviteError(data.error || 'Delete failed');
+      } else {
+        setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id));
+      }
+    } catch { /* ignore */ } finally {
+      setDeleteLoading(false);
+      setDeleteTarget(null);
+    }
+  };
 
   return (
     <PageContainer>
@@ -1016,6 +1086,19 @@ export default function AdminPage() {
       {/* ===== Users Tab ===== */}
       {tab === 3 && (
         <SectionContainer>
+          {canManageUsers && (
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<PersonAddIcon />}
+                onClick={() => setInviteOpen(true)}
+              >
+                Invite User
+              </Button>
+            </Box>
+          )}
+
           {usersLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
           ) : (
@@ -1026,13 +1109,15 @@ export default function AdminPage() {
                     <TableCell>Name</TableCell>
                     <TableCell>Email</TableCell>
                     <TableCell>Role</TableCell>
+                    <TableCell>Status</TableCell>
                     <TableCell>Joined</TableCell>
+                    {canManageUsers && <TableCell align="right">Actions</TableCell>}
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {users.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} align="center">
+                      <TableCell colSpan={canManageUsers ? 6 : 5} align="center">
                         <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>No users found</Typography>
                       </TableCell>
                     </TableRow>
@@ -1058,7 +1143,28 @@ export default function AdminPage() {
                             <Chip label={ROLE_LABELS[u.role]} size="small" variant="outlined" sx={{ height: 22, fontSize: '0.7rem' }} />
                           )}
                         </TableCell>
+                        <TableCell>
+                          {u.invitedAt && !u.onboardedAt ? (
+                            <Chip label="Pending" size="small" color="warning" variant="outlined" sx={{ height: 22, fontSize: '0.7rem' }} />
+                          ) : (
+                            <Chip label="Active" size="small" color="success" variant="outlined" sx={{ height: 22, fontSize: '0.7rem' }} />
+                          )}
+                        </TableCell>
                         <TableCell><Typography variant="caption" color="text.disabled">{new Date(u.createdAt).toLocaleDateString()}</Typography></TableCell>
+                        {canManageUsers && (
+                          <TableCell align="right">
+                            {u.id !== currentUser?.id && (
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => setDeleteTarget(u)}
+                                aria-label={`Delete ${u.name}`}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            )}
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))
                   )}
@@ -1066,6 +1172,76 @@ export default function AdminPage() {
               </Table>
             </TableContainer>
           )}
+
+          {/* Delete User Confirmation */}
+          <Dialog open={!!deleteTarget} onClose={() => !deleteLoading && setDeleteTarget(null)} maxWidth="xs" fullWidth>
+            <DialogTitle>Delete User</DialogTitle>
+            <DialogContent>
+              <Typography variant="body2">
+                Are you sure you want to permanently delete <strong>{deleteTarget?.name}</strong> ({deleteTarget?.email})? This cannot be undone.
+              </Typography>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2 }}>
+              <Button onClick={() => setDeleteTarget(null)} variant="outlined" color="inherit" disabled={deleteLoading}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteUser}
+                variant="contained"
+                color="error"
+                disabled={deleteLoading}
+                startIcon={deleteLoading ? <CircularProgress size={16} color="inherit" /> : <DeleteIcon />}
+              >
+                {deleteLoading ? 'Deleting...' : 'Delete'}
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          {/* Invite User Dialog */}
+          <Dialog open={inviteOpen} onClose={handleInviteClose} maxWidth="xs" fullWidth>
+            <DialogTitle>Invite User</DialogTitle>
+            <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
+              {inviteError && <Alert severity="error" sx={{ mt: 1 }}>{inviteError}</Alert>}
+              {inviteSuccess && <Alert severity="success" sx={{ mt: 1 }}>{inviteSuccess}</Alert>}
+              <TextField
+                label="Email Address"
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                fullWidth
+                required
+                disabled={inviteLoading}
+                autoFocus
+                sx={{ mt: 1 }}
+              />
+              <FormControl fullWidth size="small">
+                <InputLabel>Role</InputLabel>
+                <Select
+                  value={inviteRole}
+                  label="Role"
+                  onChange={(e) => setInviteRole(e.target.value as UserRoleValue)}
+                  disabled={inviteLoading}
+                >
+                  {allRoles.map((r) => (
+                    <MenuItem key={r} value={r}>{ROLE_LABELS[r]}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2 }}>
+              <Button onClick={handleInviteClose} variant="outlined" color="inherit" disabled={inviteLoading}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleInvite}
+                variant="contained"
+                disabled={inviteLoading || !inviteEmail.trim()}
+                startIcon={inviteLoading ? <CircularProgress size={16} color="inherit" /> : <PersonAddIcon />}
+              >
+                {inviteLoading ? 'Sending...' : 'Send Invite'}
+              </Button>
+            </DialogActions>
+          </Dialog>
         </SectionContainer>
       )}
     </PageContainer>

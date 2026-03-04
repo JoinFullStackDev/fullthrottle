@@ -104,7 +104,7 @@ export default function RoundTableDialog({
               />
               <ListItemAvatar>
                 <Avatar
-                  src={`/agents/${agent.name.toLowerCase()}.png`}
+                  src={agent.avatarUrl ?? `/agents/${agent.name.toLowerCase()}.png`}
                   sx={{ bgcolor: 'primary.main' }}
                 >
                   <SmartToyIcon />

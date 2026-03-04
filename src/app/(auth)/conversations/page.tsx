@@ -112,6 +112,7 @@ export default function ConversationsPage() {
             defaultModel: '',
             provider: '',
             runtimeAgentId: null,
+            avatarUrl: null,
             createdAt: '',
             updatedAt: '',
           })),
@@ -211,6 +212,11 @@ export default function ConversationsPage() {
                   streamingContent={streamingContent}
                   isStreaming={isStreaming}
                   agentName={currentAgent?.name}
+                  agentAvatarMap={Object.fromEntries(
+                    roundTableAgents
+                      .filter((a) => a.avatarUrl)
+                      .map((a) => [a.name, a.avatarUrl!]),
+                  )}
                   currentStreamingAgent={currentAgent}
                 />
               )}

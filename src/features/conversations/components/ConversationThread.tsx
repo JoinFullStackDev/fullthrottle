@@ -16,6 +16,8 @@ interface ConversationThreadProps {
   streamingContent?: string;
   isStreaming?: boolean;
   agentName?: string;
+  agentAvatarUrl?: string;
+  agentAvatarMap?: Record<string, string>;
   currentStreamingAgent?: { id: string; name: string } | null;
 }
 
@@ -24,6 +26,8 @@ export default function ConversationThread({
   streamingContent,
   isStreaming,
   agentName,
+  agentAvatarUrl,
+  agentAvatarMap,
   currentStreamingAgent,
 }: ConversationThreadProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -58,6 +62,11 @@ export default function ConversationThread({
               senderType={msg.senderType}
               senderName={msg.senderName}
               avatarUrl={msg.senderAvatarUrl}
+              agentAvatarUrl={
+                isAgent
+                  ? (agentAvatarUrl ?? (msg.senderName ? agentAvatarMap?.[msg.senderName] : undefined))
+                  : undefined
+              }
               agentName={agentName}
               timestamp={msg.createdAt}
               direction={direction}

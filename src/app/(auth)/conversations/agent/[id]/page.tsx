@@ -181,7 +181,7 @@ export default function AgentConversationsPage() {
       <Card sx={{ mb: 3, p: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Avatar
-            src={`/agents/${agent.name.toLowerCase()}.png`}
+            src={agent.avatarUrl ?? `/agents/${agent.name.toLowerCase()}.png`}
             sx={{ bgcolor: 'primary.main', width: 48, height: 48, fontWeight: 700 }}
           >
             {agent.name.slice(0, 2).toUpperCase()}
@@ -241,6 +241,7 @@ export default function AgentConversationsPage() {
                   streamingContent={streamingContent}
                   isStreaming={isStreaming}
                   agentName={agent.name}
+                  agentAvatarUrl={agent.avatarUrl ?? undefined}
                 />
               )}
             </Box>
