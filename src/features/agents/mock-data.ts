@@ -35,7 +35,7 @@ export const MOCK_AGENTS: Agent[] = [
     description: 'Torque applies pressure until the weak points show up — then turns that into a concrete validation plan.',
     basePersonaVersion: 'v1.0',
     status: AgentStatus.OFFLINE,
-    defaultModel: 'gemini-2.0-flash',
+    defaultModel: 'gemini-2.5-flash',
     provider: 'google',
     runtimeAgentId: null,
     createdAt: '2025-12-01T00:00:00Z',

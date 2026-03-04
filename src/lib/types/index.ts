@@ -87,8 +87,10 @@ export interface Task {
 
 export interface Conversation {
   id: string;
-  agentId: string;
+  agentId: string | null;
+  agentIds?: string[];
   agentName?: string;
+  agentNames?: string[];
   createdBy: string;
   channel: ConversationChannelValue;
   title: string | null;

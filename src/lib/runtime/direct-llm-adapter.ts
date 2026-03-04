@@ -55,7 +55,7 @@ export class DirectLLMAdapter implements RuntimeAdapter {
 
     return (data ?? []).map((c) => ({
       conversationId: c.id,
-      agentId: c.agent_id,
+      agentId: c.agent_id ?? agentId,
       messageCount: 0,
       lastMessageAt: c.created_at,
       createdAt: c.created_at,

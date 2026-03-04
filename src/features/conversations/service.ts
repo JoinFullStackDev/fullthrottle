@@ -7,11 +7,31 @@ type MsgRow = Tables<'conversation_messages'>;
 
 import type { ConversationChannelValue } from '@/lib/constants';
 
-function rowToConversation(row: ConvRow & { agents?: { name: string } | null; msg_count?: number }): Conversation {
+interface ConvAgentJoin {
+  agent_id: string;
+  agents: { id: string; name: string } | null;
+}
+
+type ConvJoinedRow = ConvRow & {
+  agents?: { name: string } | null;
+  conversation_agents?: ConvAgentJoin[];
+  msg_count?: number;
+};
+
+function rowToConversation(row: ConvJoinedRow): Conversation {
+  const participantAgents = (row.conversation_agents ?? [])
+    .filter((ca): ca is ConvAgentJoin & { agents: { id: string; name: string } } => ca.agents !== null);
+
   return {
     id: row.id,
     agentId: row.agent_id,
+    agentIds: participantAgents.length > 0
+      ? participantAgents.map((ca) => ca.agents.id)
+      : row.agent_id ? [row.agent_id] : [],
     agentName: row.agents?.name,
+    agentNames: participantAgents.length > 0
+      ? participantAgents.map((ca) => ca.agents.name)
+      : row.agents?.name ? [row.agents.name] : [],
     createdBy: row.created_by,
     channel: (row.channel ?? 'web') as ConversationChannelValue,
     title: row.title ?? null,
@@ -39,13 +59,66 @@ export async function listConversations(): Promise<Conversation[]> {
   const supabase = createBrowserSupabaseClient();
   const { data, error } = await supabase
     .from('conversations')
-    .select('*, agents(name)')
+    .select('*, agents!conversations_agent_id_fkey(name)')
+    .order('created_at', { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as ConvJoinedRow[]).map((row) => rowToConversation(row));
+}
+
+export async function listConversationsForAgent(agentId: string): Promise<Conversation[]> {
+  const supabase = createBrowserSupabaseClient();
+  const { data, error } = await supabase
+    .from('conversations')
+    .select('*, agents!conversations_agent_id_fkey(name)')
+    .eq('agent_id', agentId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as ConvJoinedRow[]).map((row) => rowToConversation(row));
+}
+
+export interface RoundTableConversation extends Conversation {
+  participants: { id: string; name: string }[];
+}
+
+export async function listRoundTableConversations(): Promise<RoundTableConversation[]> {
+  const supabase = createBrowserSupabaseClient();
+
+  const { data: caRows } = await supabase
+    .from('conversation_agents')
+    .select('conversation_id, agent_id, agents(id, name)')
+    .order('added_at');
+
+  if (!caRows || caRows.length === 0) return [];
+
+  type CaRow = { conversation_id: string; agent_id: string; agents: { id: string; name: string } | null };
+  const grouped = new Map<string, { id: string; name: string }[]>();
+  for (const row of caRows as CaRow[]) {
+    if (!row.agents) continue;
+    const list = grouped.get(row.conversation_id) ?? [];
+    list.push({ id: row.agents.id, name: row.agents.name });
+    grouped.set(row.conversation_id, list);
+  }
+
+  const multiAgentIds = Array.from(grouped.entries())
+    .filter(([, agents]) => agents.length >= 2)
+    .map(([convId]) => convId);
+
+  if (multiAgentIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from('conversations')
+    .select('*, agents!conversations_agent_id_fkey(name)')
+    .in('id', multiAgentIds)
     .order('created_at', { ascending: false });
 
   if (error) throw new Error(error.message);
 
-  type JoinedRow = ConvRow & { agents: { name: string } | null };
-  return ((data ?? []) as JoinedRow[]).map((row) => rowToConversation(row));
+  return ((data ?? []) as ConvJoinedRow[]).map((row) => ({
+    ...rowToConversation(row),
+    participants: grouped.get(row.id) ?? [],
+  }));
 }
 
 export async function getConversationMessages(conversationId: string): Promise<ConversationMessage[]> {

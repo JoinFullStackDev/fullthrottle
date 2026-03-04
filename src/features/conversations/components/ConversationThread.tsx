@@ -16,6 +16,7 @@ interface ConversationThreadProps {
   streamingContent?: string;
   isStreaming?: boolean;
   agentName?: string;
+  currentStreamingAgent?: { id: string; name: string } | null;
 }
 
 export default function ConversationThread({
@@ -23,6 +24,7 @@ export default function ConversationThread({
   streamingContent,
   isStreaming,
   agentName,
+  currentStreamingAgent,
 }: ConversationThreadProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [openViewer, setOpenViewer] = useState<{
@@ -110,7 +112,10 @@ export default function ConversationThread({
       })}
 
       {isStreaming && streamingContent !== undefined && (
-        <StreamingMessage content={streamingContent} agentName={agentName} />
+        <StreamingMessage
+          content={streamingContent}
+          agentName={currentStreamingAgent?.name ?? agentName}
+        />
       )}
 
       <div ref={bottomRef} />

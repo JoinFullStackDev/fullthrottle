@@ -207,10 +207,43 @@ export interface Database {
           },
         ];
       };
+      conversation_agents: {
+        Row: {
+          conversation_id: string;
+          agent_id: string;
+          added_at: string;
+        };
+        Insert: {
+          conversation_id: string;
+          agent_id: string;
+          added_at?: string;
+        };
+        Update: {
+          conversation_id?: string;
+          agent_id?: string;
+          added_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'conversation_agents_conversation_id_fkey';
+            columns: ['conversation_id'];
+            isOneToOne: false;
+            referencedRelation: 'conversations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'conversation_agents_agent_id_fkey';
+            columns: ['agent_id'];
+            isOneToOne: false;
+            referencedRelation: 'agents';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       conversations: {
         Row: {
           id: string;
-          agent_id: string;
+          agent_id: string | null;
           created_by: string;
           channel: string;
           title: string | null;
@@ -220,7 +253,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          agent_id: string;
+          agent_id?: string | null;
           created_by: string;
           channel?: string;
           title?: string | null;
@@ -230,7 +263,7 @@ export interface Database {
         };
         Update: {
           id?: string;
-          agent_id?: string;
+          agent_id?: string | null;
           created_by?: string;
           channel?: string;
           title?: string | null;

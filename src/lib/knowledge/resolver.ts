@@ -257,6 +257,44 @@ export async function resolveKnowledgeForAgent(
   return results.filter((d) => d.content.length > 0);
 }
 
+export async function resolveDocumentsByIds(
+  documentIds: string[],
+): Promise<ResolvedDocument[]> {
+  if (documentIds.length === 0) return [];
+
+  const supabase = createServiceRoleClient();
+  const { data: sources } = await supabase
+    .from('knowledge_sources')
+    .select('*')
+    .in('id', documentIds);
+
+  if (!sources?.length) return [];
+
+  const results: ResolvedDocument[] = [];
+
+  for (const source of sources as KsRow[]) {
+    const { data: cached } = await supabase
+      .from('knowledge_content')
+      .select('content, char_count')
+      .eq('source_id', source.id)
+      .eq('chunk_index', 0)
+      .single();
+
+    if (cached?.content) {
+      results.push({
+        name: source.name,
+        sourceType: source.source_type,
+        content: cached.content,
+        lastVerified: source.last_fetched_at ?? source.created_at,
+        status: 'fresh',
+        charCount: cached.char_count ?? cached.content.length,
+      });
+    }
+  }
+
+  return results;
+}
+
 export async function forceRefreshSource(sourceId: string): Promise<ResolvedDocument | null> {
   const supabase = createServiceRoleClient();
 

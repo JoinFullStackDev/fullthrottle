@@ -1,142 +1,173 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
+import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
-import List from '@mui/material/List';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemText from '@mui/material/ListItemText';
-import ListItemAvatar from '@mui/material/ListItemAvatar';
-import Avatar from '@mui/material/Avatar';
-import Chip from '@mui/material/Chip';
-import Divider from '@mui/material/Divider';
-import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
+import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
-import SmartToyIcon from '@mui/icons-material/SmartToyOutlined';
-import ArrowBackIcon from '@mui/icons-material/ArrowBackOutlined';
-import AddIcon from '@mui/icons-material/AddOutlined';
 import IconButton from '@mui/material/IconButton';
+import Typography from '@mui/material/Typography';
+import SmartToyIcon from '@mui/icons-material/SmartToyOutlined';
+import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined';
+import ArrowBackIcon from '@mui/icons-material/ArrowBackOutlined';
 import { PageContainer, Header, SectionContainer } from '@/components/layout';
+import AgentConversationCard from '@/features/conversations/components/AgentConversationCard';
+import RoundTableCard from '@/features/conversations/components/RoundTableCard';
+import RoundTableDialog from '@/features/conversations/components/RoundTableDialog';
 import ConversationThread from '@/features/conversations/components/ConversationThread';
 import ChatInput from '@/features/conversations/components/ChatInput';
-import NewConversationDialog from '@/features/conversations/components/NewConversationDialog';
-import { listConversations, getConversationMessages } from '@/features/conversations/service';
+import type { ChatSendPayload } from '@/features/conversations/components/ChatInput';
+import {
+  listConversations,
+  getConversationMessages,
+  listRoundTableConversations,
+} from '@/features/conversations/service';
+import type { RoundTableConversation } from '@/features/conversations/service';
 import { listAgents } from '@/features/agents/service';
-import { useChatStream } from '@/features/conversations/hooks/useChatStream';
-import { CHANNEL_LABELS } from '@/lib/constants';
-import type { Conversation, ConversationMessage, Agent } from '@/lib/types';
-import type { ConversationChannelValue } from '@/lib/constants';
+import { listKnowledgeSources } from '@/features/knowledge/service';
+import { useRoundTableStream } from '@/features/conversations/hooks/useRoundTableStream';
+import type { Conversation, ConversationMessage, Agent, KnowledgeSource } from '@/lib/types';
 
 export default function ConversationsPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [roundTableConvos, setRoundTableConvos] = useState<RoundTableConversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+  const [roundTableOpen, setRoundTableOpen] = useState(false);
+
+  const [knowledgeSources, setKnowledgeSources] = useState<KnowledgeSource[]>([]);
+  const [roundTableAgents, setRoundTableAgents] = useState<Agent[]>([]);
+  const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
-  const [messagesLoading, setMessagesLoading] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
 
   const {
     streamingContent,
     isStreaming,
     error: streamError,
     conversationId: streamConvId,
+    currentAgent,
     send,
     reset,
-  } = useChatStream();
+  } = useRoundTableStream();
 
-  useEffect(() => {
-    Promise.all([listConversations(), listAgents()])
-      .then(([convs, ags]) => {
-        setConversations(convs);
-        setAgents(ags);
-      })
-      .catch(() => {})
-      .finally(() => setIsLoading(false));
+  const loadData = useCallback(async () => {
+    const results: { agents?: Agent[]; convs?: Conversation[]; rt?: RoundTableConversation[]; ks?: KnowledgeSource[] } = {};
+    try { results.agents = await listAgents(); } catch { /* */ }
+    try { results.convs = await listConversations(); } catch { /* */ }
+    try { results.rt = await listRoundTableConversations(); } catch { /* */ }
+    try { results.ks = await listKnowledgeSources(); } catch { /* */ }
+    return results;
   }, []);
 
-  const handleSelect = useCallback(
-    async (id: string) => {
-      reset();
-      setSelectedId(id);
-      setMessagesLoading(true);
+  useEffect(() => {
+    let mounted = true;
+    loadData().then((r) => {
+      if (!mounted) return;
+      if (r.agents) setAgents(r.agents);
+      if (r.convs) setConversations(r.convs);
+      if (r.rt) setRoundTableConvos(r.rt);
+      if (r.ks) setKnowledgeSources(r.ks);
+      setIsLoading(false);
+    });
+    return () => { mounted = false; };
+  }, [loadData]);
 
-      const conv = conversations.find((c) => c.id === id);
-      if (conv) {
-        const agent = agents.find((a) => a.id === conv.agentId);
-        setSelectedAgent(agent ?? null);
+  const conversationCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const conv of conversations) {
+      if (conv.agentId) {
+        counts[conv.agentId] = (counts[conv.agentId] || 0) + 1;
       }
+    }
+    return counts;
+  }, [conversations]);
 
-      try {
-        const msgs = await getConversationMessages(id);
-        setMessages(msgs);
-      } catch {
-        setMessages([]);
-      } finally {
-        setMessagesLoading(false);
-      }
-    },
-    [conversations, agents, reset],
-  );
-
-  const handleNewConversation = useCallback(
-    (agent: Agent) => {
+  const handleStartRoundTable = useCallback(
+    (selectedAgents: Agent[]) => {
       reset();
-      setSelectedAgent(agent);
-      setSelectedId(null);
+      setRoundTableAgents(selectedAgents);
+      setActiveConvId(null);
       setMessages([]);
     },
     [reset],
   );
 
+  const handleResumeRoundTable = useCallback(
+    async (conv: RoundTableConversation) => {
+      reset();
+      const participantAgents = agents.filter((a) =>
+        conv.participants.some((p) => p.id === a.id),
+      );
+      if (participantAgents.length < 2) {
+        setRoundTableAgents(
+          conv.participants.map((p) => ({
+            id: p.id,
+            name: p.name,
+            role: '',
+            description: '',
+            basePersonaVersion: '',
+            status: 'active' as const,
+            defaultModel: '',
+            provider: '',
+            runtimeAgentId: null,
+            createdAt: '',
+            updatedAt: '',
+          })),
+        );
+      } else {
+        setRoundTableAgents(participantAgents);
+      }
+      setActiveConvId(conv.id);
+      try {
+        const msgs = await getConversationMessages(conv.id);
+        setMessages(msgs);
+      } catch {
+        setMessages([]);
+      }
+    },
+    [reset, agents],
+  );
+
   const handleSendMessage = useCallback(
-    (message: string) => {
-      if (!selectedAgent) return;
-
-      const convId = selectedId ?? streamConvId ?? undefined;
-
+    (payload: ChatSendPayload) => {
+      if (roundTableAgents.length < 2) return;
       send({
-        agentId: selectedAgent.id,
-        conversationId: convId,
-        message,
+        agentIds: roundTableAgents.map((a) => a.id),
+        conversationId: activeConvId ?? streamConvId ?? undefined,
+        message: payload.message,
+        documentIds: payload.documentIds,
       });
     },
-    [selectedAgent, selectedId, streamConvId, send],
+    [roundTableAgents, activeConvId, streamConvId, send],
   );
 
   const handleBack = useCallback(() => {
     reset();
-    setSelectedId(null);
-    setSelectedAgent(null);
+    setRoundTableAgents([]);
+    setActiveConvId(null);
     setMessages([]);
     listConversations().then(setConversations).catch(() => {});
+    listRoundTableConversations().then(setRoundTableConvos).catch(() => {});
   }, [reset]);
 
-  // After streaming completes, reload messages to get the stored version
   useEffect(() => {
-    const convId = selectedId ?? streamConvId;
-    if (!isStreaming && streamingContent && convId) {
-      setSelectedId(convId);
+    const convId = activeConvId ?? streamConvId;
+    if (!isStreaming && streamingContent === '' && convId) {
+      setActiveConvId(convId);
       getConversationMessages(convId).then(setMessages).catch(() => {});
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStreaming]);
 
-  const selectedConversation = conversations.find((c) => c.id === selectedId);
-  const inChat = selectedId || selectedAgent;
-  const chatTitle = selectedConversation
-    ? selectedConversation.title ?? `Chat with ${selectedConversation.agentName ?? 'Agent'}`
-    : selectedAgent
-      ? `New conversation with ${selectedAgent.name}`
-      : 'Conversation';
+  const inRoundTable = roundTableAgents.length > 0;
+  const roundTableTitle = `Round Table: ${roundTableAgents.map((a) => a.name).join(', ')}`;
 
   if (isLoading) {
     return (
       <PageContainer>
-        <Header title="Conversations" subtitle="Agent conversation logs" />
+        <Header title="Conversations" subtitle="Chat with your AI agent team" />
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
           <CircularProgress />
         </Box>
@@ -148,23 +179,13 @@ export default function ConversationsPage() {
     <PageContainer>
       <Header title="Conversations" subtitle="Chat with your AI agent team" />
 
-      {inChat ? (
+      {inRoundTable ? (
         <SectionContainer
-          title={chatTitle}
+          title={roundTableTitle}
           actions={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              {selectedConversation?.channel === 'slack' && (
-                <Chip
-                  label="Slack"
-                  size="small"
-                  variant="outlined"
-                  sx={{ height: 22, fontSize: '0.7rem', borderColor: 'primary.main' }}
-                />
-              )}
-              <IconButton onClick={handleBack} size="small">
-                <ArrowBackIcon />
-              </IconButton>
-            </Box>
+            <IconButton onClick={handleBack} size="small">
+              <ArrowBackIcon />
+            </IconButton>
           }
         >
           <Card
@@ -176,15 +197,12 @@ export default function ConversationsPage() {
             }}
           >
             <Box sx={{ flex: 1, overflow: 'auto', p: 3 }}>
-              {messagesLoading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                  <CircularProgress />
-                </Box>
-              ) : messages.length === 0 && !isStreaming ? (
+              {messages.length === 0 && !isStreaming ? (
                 <Box sx={{ textAlign: 'center', py: 8 }}>
-                  <SmartToyIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
+                  <GroupsOutlinedIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
                   <Typography variant="body2" color="text.secondary">
-                    Send a message to start talking to {selectedAgent?.name ?? 'the agent'}.
+                    Send a message to start the round table with{' '}
+                    {roundTableAgents.map((a) => a.name).join(', ')}.
                   </Typography>
                 </Box>
               ) : (
@@ -192,7 +210,8 @@ export default function ConversationsPage() {
                   messages={messages}
                   streamingContent={streamingContent}
                   isStreaming={isStreaming}
-                  agentName={selectedAgent?.name}
+                  agentName={currentAgent?.name}
+                  currentStreamingAgent={currentAgent}
                 />
               )}
             </Box>
@@ -205,105 +224,73 @@ export default function ConversationsPage() {
 
             <ChatInput
               onSend={handleSendMessage}
-              disabled={isStreaming || !selectedAgent}
-              placeholder={
-                selectedAgent
-                  ? `Message ${selectedAgent.name} (${selectedAgent.provider}/${selectedAgent.defaultModel})...`
-                  : 'Select an agent first...'
-              }
+              disabled={isStreaming}
+              placeholder={`Message ${roundTableAgents.map((a) => a.name).join(', ')}...`}
+              knowledgeSources={knowledgeSources}
             />
           </Card>
         </SectionContainer>
       ) : (
         <>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setDialogOpen(true)}
-              size="small"
-            >
-              New Conversation
-            </Button>
-          </Box>
+          {agents.length > 0 && (
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+              <Button
+                variant="outlined"
+                startIcon={<GroupsOutlinedIcon />}
+                onClick={() => setRoundTableOpen(true)}
+                size="small"
+              >
+                Round Table
+              </Button>
+            </Box>
+          )}
 
-          <Card>
-            {conversations.length === 0 ? (
-              <Box sx={{ p: 4, textAlign: 'center' }}>
-                <SmartToyIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  No conversations yet.
-                </Typography>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={() => setDialogOpen(true)}
-                >
-                  Start your first conversation
-                </Button>
-              </Box>
-            ) : (
-              <List disablePadding>
-                {conversations.map((conv, idx) => (
-                  <Box key={conv.id}>
-                    <ListItemButton onClick={() => handleSelect(conv.id)} sx={{ py: 2 }}>
-                      <ListItemAvatar>
-                        <Avatar sx={{ bgcolor: 'primary.main' }}>
-                          <SmartToyIcon />
-                        </Avatar>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="body2" fontWeight={500}>
-                              {conv.title ?? conv.agentName ?? 'Agent'}
-                            </Typography>
-                            {conv.agentName && conv.title && (
-                              <Chip
-                                label={conv.agentName}
-                                size="small"
-                                variant="outlined"
-                                sx={{ height: 20, fontSize: '0.65rem' }}
-                              />
-                            )}
-                          </Box>
-                        }
-                        secondaryTypographyProps={{ component: 'div' }}
-                        secondary={
-                          <Box component="span" sx={{ display: 'flex', gap: 0.75, mt: 0.5 }}>
-                            <Chip
-                              label={CHANNEL_LABELS[conv.channel as ConversationChannelValue] ?? conv.channel}
-                              size="small"
-                              variant="outlined"
-                              sx={{ height: 20, fontSize: '0.65rem' }}
-                            />
-                            <Chip
-                              label={`${conv.messageCount ?? 0} messages`}
-                              size="small"
-                              variant="outlined"
-                              sx={{ height: 20, fontSize: '0.65rem' }}
-                            />
-                          </Box>
-                        }
-                      />
-                      <Typography variant="caption" color="text.disabled">
-                        {new Date(conv.createdAt).toLocaleDateString()}
-                      </Typography>
-                    </ListItemButton>
-                    {idx < conversations.length - 1 && <Divider />}
-                  </Box>
+          {agents.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 8 }}>
+              <SmartToyIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
+              <Typography variant="body2" color="text.secondary">
+                No agents available. Set up agents first.
+              </Typography>
+            </Box>
+          ) : (
+            <>
+              <Grid container spacing={3}>
+                {agents.map((agent) => (
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }} key={agent.id}>
+                    <AgentConversationCard
+                      agent={agent}
+                      conversationCount={conversationCounts[agent.id] ?? 0}
+                    />
+                  </Grid>
                 ))}
-              </List>
-            )}
-          </Card>
+              </Grid>
+
+              {roundTableConvos.length > 0 && (
+                <Box sx={{ mt: 4 }}>
+                  <Typography variant="h3" sx={{ mb: 2 }}>
+                    Round Tables
+                  </Typography>
+                  <Grid container spacing={3}>
+                    {roundTableConvos.map((conv) => (
+                      <Grid size={{ xs: 12, sm: 6, md: 4 }} key={conv.id}>
+                        <RoundTableCard
+                          conversation={conv}
+                          onClick={handleResumeRoundTable}
+                        />
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+              )}
+            </>
+          )}
         </>
       )}
 
-      <NewConversationDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        onSelect={handleNewConversation}
+      <RoundTableDialog
+        open={roundTableOpen}
+        onClose={() => setRoundTableOpen(false)}
+        onStart={handleStartRoundTable}
         agents={agents}
       />
     </PageContainer>

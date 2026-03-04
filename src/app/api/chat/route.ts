@@ -11,14 +11,14 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   }
 
-  let body: { agentId?: string; conversationId?: string; message?: string };
+  let body: { agentId?: string; conversationId?: string; message?: string; documentIds?: string[] };
   try {
     body = await req.json();
   } catch {
     return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400 });
   }
 
-  const { agentId, conversationId: existingConvId, message } = body;
+  const { agentId, conversationId: existingConvId, message, documentIds } = body;
 
   if (!agentId || !message?.trim()) {
     return new Response(
@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
           userMessage: message!.trim(),
           userId: user.id,
           channel: 'web',
+          documentIds,
         });
 
         for await (const chunk of generator) {

@@ -1,6 +1,6 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { assembleSystemPrompt } from './persona-assembler';
-import { resolveKnowledgeForAgent } from '@/lib/knowledge/resolver';
+import { resolveKnowledgeForAgent, resolveDocumentsByIds } from '@/lib/knowledge/resolver';
 import { getProvider } from './providers/registry';
 import type { StreamChunk, ChatMessage } from './providers/types';
 import type { ResolvedDocument } from '@/lib/knowledge/types';
@@ -17,6 +17,7 @@ interface PipelineParams {
   userMessage: string;
   userId: string;
   channel: 'web' | 'slack';
+  documentIds?: string[];
 }
 
 async function getAgent(agentId: string): Promise<AgentRow> {
@@ -116,7 +117,7 @@ function formatKnowledgeSection(docs: ResolvedDocument[]): string {
 export async function* processAgentMessage(
   params: PipelineParams,
 ): AsyncGenerator<StreamChunk> {
-  const { agentId, conversationId, userMessage, userId, channel } = params;
+  const { agentId, conversationId, userMessage, userId, channel, documentIds } = params;
 
   const agent = await getAgent(agentId);
   const { systemPrompt, knowledgeScope } = await assembleSystemPrompt(
@@ -131,11 +132,26 @@ export async function* processAgentMessage(
 
   try {
     knowledgeDocs = await resolveKnowledgeForAgent(agentId, knowledgeScope);
-    if (knowledgeDocs.length > 0) {
-      fullPrompt += formatKnowledgeSection(knowledgeDocs);
-    }
   } catch (knowledgeErr) {
     console.error('[Knowledge resolution error]', knowledgeErr);
+  }
+
+  if (documentIds && documentIds.length > 0) {
+    try {
+      const referencedDocs = await resolveDocumentsByIds(documentIds);
+      const existingNames = new Set(knowledgeDocs.map((d) => d.name));
+      for (const doc of referencedDocs) {
+        if (!existingNames.has(doc.name)) {
+          knowledgeDocs.push(doc);
+        }
+      }
+    } catch (refErr) {
+      console.error('[Referenced document resolution error]', refErr);
+    }
+  }
+
+  if (knowledgeDocs.length > 0) {
+    fullPrompt += formatKnowledgeSection(knowledgeDocs);
   }
 
   const supabase = createServiceRoleClient();

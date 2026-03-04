@@ -3,25 +3,34 @@
 import { useState, useCallback, useRef } from 'react';
 
 interface StreamChunk {
-  type: 'meta' | 'text' | 'done' | 'error';
+  type: 'meta' | 'text' | 'done' | 'error' | 'agentStart' | 'agentDone';
   content?: string;
   conversationId?: string;
+  agentId?: string;
+  agentName?: string;
 }
 
-interface UseChatStreamReturn {
+export interface CurrentAgent {
+  id: string;
+  name: string;
+}
+
+interface UseRoundTableStreamReturn {
   streamingContent: string;
   isStreaming: boolean;
   error: string | null;
   conversationId: string | null;
-  send: (params: { agentId: string; conversationId?: string; message: string; documentIds?: string[] }) => void;
+  currentAgent: CurrentAgent | null;
+  send: (params: { agentIds: string[]; conversationId?: string; message: string; documentIds?: string[] }) => void;
   reset: () => void;
 }
 
-export function useChatStream(): UseChatStreamReturn {
+export function useRoundTableStream(): UseRoundTableStreamReturn {
   const [streamingContent, setStreamingContent] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [currentAgent, setCurrentAgent] = useState<CurrentAgent | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const reset = useCallback(() => {
@@ -29,10 +38,11 @@ export function useChatStream(): UseChatStreamReturn {
     setStreamingContent('');
     setIsStreaming(false);
     setError(null);
+    setCurrentAgent(null);
   }, []);
 
   const send = useCallback(
-    (params: { agentId: string; conversationId?: string; message: string; documentIds?: string[] }) => {
+    (params: { agentIds: string[]; conversationId?: string; message: string; documentIds?: string[] }) => {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
@@ -40,14 +50,15 @@ export function useChatStream(): UseChatStreamReturn {
       setStreamingContent('');
       setIsStreaming(true);
       setError(null);
+      setCurrentAgent(null);
 
       (async () => {
         try {
-          const res = await fetch('/api/chat', {
+          const res = await fetch('/api/chat/roundtable', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              agentId: params.agentId,
+              agentIds: params.agentIds,
               conversationId: params.conversationId,
               message: params.message,
               documentIds: params.documentIds,
@@ -84,13 +95,18 @@ export function useChatStream(): UseChatStreamReturn {
 
                 if (chunk.type === 'meta' && chunk.conversationId) {
                   setConversationId(chunk.conversationId);
+                } else if (chunk.type === 'agentStart' && chunk.agentId && chunk.agentName) {
+                  setCurrentAgent({ id: chunk.agentId, name: chunk.agentName });
+                  setStreamingContent('');
                 } else if (chunk.type === 'text' && chunk.content) {
                   setStreamingContent((prev) => prev + chunk.content);
+                } else if (chunk.type === 'agentDone') {
+                  setStreamingContent('');
                 } else if (chunk.type === 'error') {
                   setError(chunk.content ?? 'Stream error');
                 }
               } catch {
-                // Skip malformed SSE lines
+                // skip malformed SSE lines
               }
             }
           }
@@ -100,11 +116,12 @@ export function useChatStream(): UseChatStreamReturn {
           }
         } finally {
           setIsStreaming(false);
+          setCurrentAgent(null);
         }
       })();
     },
     [],
   );
 
-  return { streamingContent, isStreaming, error, conversationId, send, reset };
+  return { streamingContent, isStreaming, error, conversationId, currentAgent, send, reset };
 }

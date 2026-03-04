@@ -39,7 +39,8 @@ export default function MessageHeader({
   const isAgent = senderType === SenderType.AGENT;
   const isSystem = senderType === SenderType.SYSTEM;
 
-  const agentSrc = isAgent && agentName ? `/agents/${agentName.toLowerCase()}.png` : undefined;
+  const agentAvatarName = agentName ?? (isAgent && senderName ? senderName : undefined);
+  const agentSrc = isAgent && agentAvatarName ? `/agents/${agentAvatarName.toLowerCase()}.png` : undefined;
   const humanSrc = !isAgent && !isSystem ? avatarUrl : undefined;
   const src = agentSrc ?? humanSrc;
 
