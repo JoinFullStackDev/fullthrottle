@@ -200,3 +200,13 @@ export interface Integration {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface Project {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  status: 'active' | 'archived';
+  createdAt: string;
+  updatedAt: string;
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -14,7 +14,8 @@ import MenuItem from '@mui/material/MenuItem';
 import Box from '@mui/material/Box';
 import { OwnerType, TaskPriority, PRIORITY_LABELS } from '@/lib/constants';
 import type { OwnerTypeValue, TaskPriorityValue } from '@/lib/constants';
-import type { Agent, User } from '@/lib/types';
+import type { Agent, User, Project } from '@/lib/types';
+import { listActiveProjects } from '@/features/projects/service';
 
 interface TaskFormProps {
   open: boolean;
@@ -40,6 +41,13 @@ export default function TaskForm({ open, onClose, onSubmit, agents = [], users =
   const [ownerId, setOwnerId] = useState('');
   const [priority, setPriority] = useState<TaskPriorityValue>(TaskPriority.MEDIUM);
   const [projectTag, setProjectTag] = useState('');
+  const [projects, setProjects] = useState<Project[]>([]);
+
+  useEffect(() => {
+    if (open) {
+      listActiveProjects().then(setProjects).catch(() => {});
+    }
+  }, [open]);
 
   const handleSubmit = () => {
     onSubmit?.({ title, description, ownerType, ownerId, priority, projectTag });
@@ -126,12 +134,23 @@ export default function TaskForm({ open, onClose, onSubmit, agents = [], users =
                 ))}
               </Select>
             </FormControl>
-            <TextField
-              label="Project Tag"
-              value={projectTag}
-              onChange={(e) => setProjectTag(e.target.value)}
-              fullWidth
-            />
+            <FormControl fullWidth size="small">
+              <InputLabel>Project</InputLabel>
+              <Select
+                value={projectTag}
+                label="Project"
+                onChange={(e) => setProjectTag(e.target.value)}
+              >
+                <MenuItem value="">
+                  <em>No project</em>
+                </MenuItem>
+                {projects.map((p) => (
+                  <MenuItem key={p.slug} value={p.slug}>
+                    {p.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Box>
         </Box>
       </DialogContent>

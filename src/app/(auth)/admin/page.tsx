@@ -52,7 +52,12 @@ import WarningIcon from '@mui/icons-material/WarningAmberOutlined';
 import HelpIcon from '@mui/icons-material/HelpOutlineOutlined';
 import Checkbox from '@mui/material/Checkbox';
 import PersonAddIcon from '@mui/icons-material/PersonAddOutlined';
+import EditIcon from '@mui/icons-material/EditOutlined';
+import ArchiveIcon from '@mui/icons-material/ArchiveOutlined';
+import UnarchiveIcon from '@mui/icons-material/UnarchiveOutlined';
 import { PageContainer, Header, SectionContainer } from '@/components/layout';
+import { listProjects, createProject, updateProject } from '@/features/projects/service';
+import type { Project } from '@/lib/types';
 import UsageStatBlock from '@/features/usage/components/UsageStatBlock';
 import { listAuditLogs } from '@/features/audit/service';
 import {
@@ -75,6 +80,94 @@ import type { AuditLogEntry, KnowledgeSource, User, Agent, Integration } from '@
 export default function AdminPage() {
   const [tab, setTab] = useState(0);
   const { user: currentUser } = useAuth();
+
+  // ===== Projects =====
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+  const [projectDialogOpen, setProjectDialogOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [projectName, setProjectName] = useState('');
+  const [projectSlug, setProjectSlug] = useState('');
+  const [projectDescription, setProjectDescription] = useState('');
+  const [projectSaving, setProjectSaving] = useState(false);
+
+  const loadProjects = useCallback(async () => {
+    setProjectsLoading(true);
+    try {
+      const data = await listProjects();
+      setProjects(data);
+    } catch {
+      setProjects([]);
+    } finally {
+      setProjectsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tab === 4) loadProjects();
+  }, [tab, loadProjects]);
+
+  const handleProjectDialogOpen = (project?: Project) => {
+    if (project) {
+      setEditingProject(project);
+      setProjectName(project.name);
+      setProjectSlug(project.slug);
+      setProjectDescription(project.description);
+    } else {
+      setEditingProject(null);
+      setProjectName('');
+      setProjectSlug('');
+      setProjectDescription('');
+    }
+    setProjectDialogOpen(true);
+  };
+
+  const handleProjectDialogClose = () => {
+    setProjectDialogOpen(false);
+    setEditingProject(null);
+    setProjectName('');
+    setProjectSlug('');
+    setProjectDescription('');
+  };
+
+  const handleProjectSave = async () => {
+    setProjectSaving(true);
+    try {
+      if (editingProject) {
+        await updateProject(editingProject.id, {
+          name: projectName.trim(),
+          description: projectDescription.trim(),
+        });
+      } else {
+        await createProject({
+          name: projectName.trim(),
+          slug: projectSlug.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+          description: projectDescription.trim(),
+        });
+      }
+      handleProjectDialogClose();
+      loadProjects();
+    } catch {
+      // silent
+    } finally {
+      setProjectSaving(false);
+    }
+  };
+
+  const handleProjectArchiveToggle = async (project: Project) => {
+    try {
+      await updateProject(project.id, {
+        status: project.status === 'active' ? 'archived' : 'active',
+      });
+      loadProjects();
+    } catch {
+      // silent
+    }
+  };
+
+  const autoSlug = (name: string) => {
+    return name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  };
 
   // ===== Dev Seed =====
   const [seedLoading, setSeedLoading] = useState(false);
@@ -561,6 +654,7 @@ export default function AdminPage() {
           <Tab label="Usage" />
           <Tab label="Knowledge Sources" />
           <Tab label="Users" />
+          <Tab label="Projects" />
         </Tabs>
       </Box>
 
@@ -1239,6 +1333,165 @@ export default function AdminPage() {
                 startIcon={inviteLoading ? <CircularProgress size={16} color="inherit" /> : <PersonAddIcon />}
               >
                 {inviteLoading ? 'Sending...' : 'Send Invite'}
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </SectionContainer>
+      )}
+
+      {/* ===== Projects Tab ===== */}
+      {tab === 4 && (
+        <SectionContainer
+          title="Projects"
+          actions={
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={() => handleProjectDialogOpen()}
+            >
+              Add Project
+            </Button>
+          }
+        >
+          {projectsLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <TableContainer component={Card}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Name</TableCell>
+                    <TableCell>Slug</TableCell>
+                    <TableCell>Description</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Created</TableCell>
+                    <TableCell align="right">Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {projects
+                    .sort((a, b) => {
+                      if (a.status !== b.status) return a.status === 'active' ? -1 : 1;
+                      return a.name.localeCompare(b.name);
+                    })
+                    .map((project) => (
+                      <TableRow
+                        key={project.id}
+                        sx={project.status === 'archived' ? { opacity: 0.5 } : {}}
+                      >
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={500}>
+                            {project.name}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={project.slug}
+                            size="small"
+                            variant="outlined"
+                            sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {project.description || '—'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={project.status}
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              height: 22,
+                              fontSize: '0.7rem',
+                              textTransform: 'capitalize',
+                              ...(project.status === 'archived'
+                                ? { borderColor: 'text.disabled', color: 'text.disabled' }
+                                : { borderColor: 'success.main', color: 'success.main' }),
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="caption" color="text.secondary">
+                            {new Date(project.createdAt).toLocaleDateString()}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleProjectDialogOpen(project)}
+                            title="Edit"
+                          >
+                            <EditIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleProjectArchiveToggle(project)}
+                            title={project.status === 'active' ? 'Archive' : 'Unarchive'}
+                          >
+                            {project.status === 'active' ? (
+                              <ArchiveIcon sx={{ fontSize: 18 }} />
+                            ) : (
+                              <UnarchiveIcon sx={{ fontSize: 18 }} />
+                            )}
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+
+          <Dialog open={projectDialogOpen} onClose={handleProjectDialogClose} maxWidth="sm" fullWidth>
+            <DialogTitle>{editingProject ? 'Edit Project' : 'Add Project'}</DialogTitle>
+            <DialogContent>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+                <TextField
+                  label="Project Name"
+                  value={projectName}
+                  onChange={(e) => {
+                    setProjectName(e.target.value);
+                    if (!editingProject) setProjectSlug(autoSlug(e.target.value));
+                  }}
+                  fullWidth
+                  required
+                />
+                {!editingProject && (
+                  <TextField
+                    label="Slug"
+                    value={projectSlug}
+                    onChange={(e) => setProjectSlug(e.target.value)}
+                    fullWidth
+                    required
+                    helperText="Lowercase identifier used in task tags and API calls"
+                    slotProps={{ input: { sx: { fontFamily: 'monospace' } } }}
+                  />
+                )}
+                <TextField
+                  label="Description"
+                  value={projectDescription}
+                  onChange={(e) => setProjectDescription(e.target.value)}
+                  fullWidth
+                  multiline
+                  minRows={2}
+                />
+              </Box>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2 }}>
+              <Button onClick={handleProjectDialogClose} variant="outlined" color="inherit">
+                Cancel
+              </Button>
+              <Button
+                onClick={handleProjectSave}
+                variant="contained"
+                disabled={projectSaving || !projectName.trim() || (!editingProject && !projectSlug.trim())}
+              >
+                {projectSaving ? <CircularProgress size={20} /> : editingProject ? 'Save' : 'Create'}
               </Button>
             </DialogActions>
           </Dialog>

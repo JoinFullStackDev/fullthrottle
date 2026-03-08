@@ -143,6 +143,18 @@ export async function updateTask(
   return rowToTask(data as TaskRow);
 }
 
+export async function listTasksByParent(parentId: string): Promise<Task[]> {
+  const supabase = createBrowserSupabaseClient();
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('parent_task_id' as string, parentId)
+    .order('created_at', { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as TaskRow[]).map(rowToTask);
+}
+
 export async function getTaskCounts(): Promise<{ total: number; active: number; review: number }> {
   const supabase = createBrowserSupabaseClient();
 

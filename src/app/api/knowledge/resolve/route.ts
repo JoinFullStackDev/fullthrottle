@@ -3,9 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { fetchFileContent } from '@/lib/knowledge/google-drive';
 import type { OAuthCredentials } from '@/lib/knowledge/types';
-import type { Database, Json } from '@/lib/supabase/database.types';
+import type { Database } from '@/lib/supabase/database.types';
 
 const GOOGLE_URL_REGEX = /\/d\/([a-zA-Z0-9_-]+)/;
+const STALE_THRESHOLD_MS = 60 * 60 * 1000; // 1 hour
 
 interface ResolveRequest {
   urls: string[];
@@ -18,6 +19,7 @@ interface ResolvedDoc {
   content: string | null;
   mimeType: string;
   charCount: number;
+  sourceId: string | null;
   error?: string;
 }
 
@@ -47,6 +49,11 @@ function mimeFromUrl(url: string): string {
   return 'application/vnd.google-apps.document';
 }
 
+function isStale(lastFetchedAt: string | null): boolean {
+  if (!lastFetchedAt) return true;
+  return Date.now() - new Date(lastFetchedAt).getTime() > STALE_THRESHOLD_MS;
+}
+
 export async function POST(req: NextRequest) {
   const user = await authenticateBearerToken(req);
   if (!user) {
@@ -60,7 +67,6 @@ export async function POST(req: NextRequest) {
 
   const svc = createServiceRoleClient();
 
-  // Find a connected Google Drive integration
   let integrationId = body.integrationId;
   if (!integrationId) {
     const { data: integrations } = await svc
@@ -79,7 +85,6 @@ export async function POST(req: NextRequest) {
     integrationId = (integrations[0] as { id: string }).id;
   }
 
-  // Load OAuth credentials
   const { data: credRow } = await svc
     .from('integration_credentials')
     .select('credentials')
@@ -112,7 +117,7 @@ export async function POST(req: NextRequest) {
   for (const url of body.urls) {
     const match = url.match(GOOGLE_URL_REGEX);
     if (!match) {
-      documents.push({ url, fileId: '', content: null, mimeType: '', charCount: 0, error: 'Could not parse file ID from URL' });
+      documents.push({ url, fileId: '', content: null, mimeType: '', charCount: 0, sourceId: null, error: 'Could not parse file ID from URL' });
       continue;
     }
 
@@ -120,42 +125,115 @@ export async function POST(req: NextRequest) {
     const mime = mimeFromUrl(url);
 
     try {
-      const content = await fetchFileContent(credentials, fileId, mime);
-      documents.push({
-        url,
-        fileId,
-        content,
-        mimeType: mime,
-        charCount: content?.length ?? 0,
-      });
+      // Check for existing knowledge source with same external_id
+      const { data: existingSources } = await svc
+        .from('knowledge_sources')
+        .select('id, fetch_status, last_fetched_at')
+        .eq('external_id', fileId)
+        .limit(1);
 
-      // Cache as knowledge source + content for future agent conversations
-      if (content) {
-        const sourceName = `Resolved: ${url.split('/d/')[0]?.split('/').pop() ?? fileId}`;
-        const { data: source } = await svc
+      const existing = existingSources?.[0] as { id: string; fetch_status: string; last_fetched_at: string | null } | undefined;
+
+      if (existing && !isStale(existing.last_fetched_at)) {
+        // Fresh existing source — return cached content
+        const { data: cached } = await svc
+          .from('knowledge_content')
+          .select('content, char_count')
+          .eq('source_id', existing.id)
+          .eq('chunk_index', 0)
+          .single();
+
+        if (cached?.content) {
+          documents.push({
+            url,
+            fileId,
+            content: cached.content,
+            mimeType: mime,
+            charCount: cached.char_count ?? cached.content.length,
+            sourceId: existing.id,
+          });
+          continue;
+        }
+      }
+
+      // Fetch fresh content from Google Drive
+      const content = await fetchFileContent(credentials, fileId, mime);
+
+      if (existing) {
+        // Update existing source
+        await svc
           .from('knowledge_sources')
-          .insert({
-            name: sourceName,
-            type: 'Document',
-            path: url,
-            source_type: 'google_drive',
-            external_id: fileId,
-            integration_id: integrationId,
+          .update({
             fetch_status: 'fresh',
             last_fetched_at: new Date().toISOString(),
             mime_type: mime,
           } as never)
-          .select('id')
-          .single();
+          .eq('id', existing.id);
 
-        if (source) {
+        // Replace content
+        await svc.from('knowledge_content').delete().eq('source_id', existing.id);
+        if (content) {
           await svc.from('knowledge_content').insert({
-            source_id: (source as { id: string }).id,
+            source_id: existing.id,
             content,
             chunk_index: 0,
             char_count: content.length,
           } as never);
         }
+
+        documents.push({
+          url,
+          fileId,
+          content,
+          mimeType: mime,
+          charCount: content?.length ?? 0,
+          sourceId: existing.id,
+        });
+      } else {
+        // Create new knowledge source
+        let sourceId: string | null = null;
+        if (content) {
+          const docTitle = url.includes('/document/') ? 'Google Doc'
+            : url.includes('/spreadsheets/') ? 'Google Sheet'
+            : url.includes('/presentation/') ? 'Google Slides'
+            : 'Document';
+          const sourceName = `${docTitle}: ${fileId.slice(0, 12)}...`;
+
+          const { data: source } = await svc
+            .from('knowledge_sources')
+            .insert({
+              name: sourceName,
+              type: 'Document',
+              path: url,
+              source_type: 'google_drive',
+              external_id: fileId,
+              integration_id: integrationId,
+              fetch_status: 'fresh',
+              last_fetched_at: new Date().toISOString(),
+              mime_type: mime,
+            } as never)
+            .select('id')
+            .single();
+
+          if (source) {
+            sourceId = (source as { id: string }).id;
+            await svc.from('knowledge_content').insert({
+              source_id: sourceId,
+              content,
+              chunk_index: 0,
+              char_count: content.length,
+            } as never);
+          }
+        }
+
+        documents.push({
+          url,
+          fileId,
+          content,
+          mimeType: mime,
+          charCount: content?.length ?? 0,
+          sourceId,
+        });
       }
     } catch (err) {
       documents.push({
@@ -164,6 +242,7 @@ export async function POST(req: NextRequest) {
         content: null,
         mimeType: mime,
         charCount: 0,
+        sourceId: null,
         error: err instanceof Error ? err.message : 'Failed to fetch content',
       });
     }

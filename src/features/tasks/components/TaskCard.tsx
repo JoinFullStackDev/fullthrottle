@@ -1,10 +1,12 @@
 'use client';
 
+import NextLink from 'next/link';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
+import MuiLink from '@mui/material/Link';
 import SmartToyIcon from '@mui/icons-material/SmartToyOutlined';
 import PersonIcon from '@mui/icons-material/PersonOutlined';
 import type { Task } from '@/lib/types';
@@ -35,9 +37,18 @@ export default function TaskCard({ task, ownerName }: TaskCardProps) {
       }}
     >
       <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-        <Typography variant="body2" fontWeight={500} sx={{ mb: 1 }}>
+        <MuiLink
+          component={NextLink}
+          href={`/tasks/${task.id}`}
+          variant="body2"
+          fontWeight={500}
+          underline="hover"
+          color="text.primary"
+          sx={{ mb: 1, display: 'block' }}
+          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+        >
           {task.title}
-        </Typography>
+        </MuiLink>
         <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
           <Chip
             icon={

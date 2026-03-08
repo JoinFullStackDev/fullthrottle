@@ -39,6 +39,32 @@ export async function listKnowledgeSources(): Promise<KnowledgeSource[]> {
   return ((data ?? []) as JoinedRow[]).map(rowToKnowledgeSource);
 }
 
+export async function getKnowledgeSourcesByIds(ids: string[]): Promise<KnowledgeSource[]> {
+  if (ids.length === 0) return [];
+  const supabase = createBrowserSupabaseClient();
+  const { data, error } = await supabase
+    .from('knowledge_sources')
+    .select('*, agents(name)')
+    .in('id', ids);
+
+  if (error) throw new Error(error.message);
+  type JoinedRow = KsRow & { agents: { name: string } | null };
+  return ((data ?? []) as JoinedRow[]).map(rowToKnowledgeSource);
+}
+
+export async function getKnowledgeContent(sourceId: string): Promise<string | null> {
+  const supabase = createBrowserSupabaseClient();
+  const { data, error } = await supabase
+    .from('knowledge_content')
+    .select('content')
+    .eq('source_id', sourceId)
+    .eq('chunk_index', 0)
+    .single();
+
+  if (error) return null;
+  return (data as { content: string })?.content ?? null;
+}
+
 export async function createKnowledgeSource(
   input: Omit<KnowledgeSource, 'id' | 'createdAt' | 'agentName' | 'contentHash' | 'lastFetchedAt' | 'lastModifiedAt' | 'fetchStatus'>,
 ): Promise<KnowledgeSource> {

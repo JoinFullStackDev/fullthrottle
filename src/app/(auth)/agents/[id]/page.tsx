@@ -1,7 +1,7 @@
 'use client';
 
 import { use, useState, useEffect, useCallback, useRef } from 'react';
-import { notFound, useSearchParams } from 'next/navigation';
+import { notFound, useSearchParams, useRouter } from 'next/navigation';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Tabs from '@mui/material/Tabs';
@@ -35,6 +35,7 @@ import AgentContextTab from '@/features/agents/components/AgentContextTab';
 export default function AgentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const searchParams = useSearchParams();
+  const router = useRouter();
   const initialTab = Number(searchParams.get('tab') ?? 0);
   const { agent, isLoading, error, refetch } = useAgent(id);
   const [tab, setTab] = useState(initialTab);
@@ -276,7 +277,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
               <List disablePadding>
                 {agentTasks.map((task, idx) => (
                   <Box key={task.id}>
-                    <ListItemButton sx={{ py: 1.5 }}>
+                    <ListItemButton sx={{ py: 1.5 }} onClick={() => router.push(`/tasks/${task.id}`)}>
                       <ListItemText
                         primary={task.title}
                         secondaryTypographyProps={{ component: 'div' }}

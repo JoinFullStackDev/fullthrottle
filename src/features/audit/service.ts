@@ -21,6 +21,7 @@ function rowToAuditEntry(row: AuditRow, actorName?: string): AuditLogEntry {
 
 export interface AuditFilters {
   entityType?: string;
+  entityId?: string;
   actionType?: string;
   actorId?: string;
   limit?: number;
@@ -35,6 +36,7 @@ export async function listAuditLogs(filters: AuditFilters = {}): Promise<AuditLo
     .order('timestamp', { ascending: false });
 
   if (filters.entityType) query = query.eq('entity_type', filters.entityType);
+  if (filters.entityId) query = query.eq('entity_id', filters.entityId);
   if (filters.actionType) query = query.eq('action_type', filters.actionType);
   if (filters.actorId) query = query.eq('actor_id', filters.actorId);
   query = query.range(filters.offset ?? 0, (filters.offset ?? 0) + (filters.limit ?? 50) - 1);

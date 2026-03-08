@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Box from '@mui/material/Box';
+import type { Project } from '@/lib/types';
+import { listActiveProjects } from '@/features/projects/service';
 import Button from '@mui/material/Button';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import ToggleButton from '@mui/material/ToggleButton';
@@ -41,6 +44,7 @@ import {
 import type { TaskStatusValue, TaskPriorityValue } from '@/lib/constants';
 
 export default function TasksPage() {
+  const router = useRouter();
   const [view, setView] = useState<'kanban' | 'list'>('kanban');
   const [formOpen, setFormOpen] = useState(false);
   const { tasks, setTasks, isLoading, error, refetch } = useTasks();
@@ -54,11 +58,11 @@ export default function TasksPage() {
   }, []);
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [filterProject, setFilterProject] = useState<string>('all');
+  const [projectsList, setProjectsList] = useState<Project[]>([]);
 
-  const projectTags = useMemo(() => {
-    const tags = new Set(tasks.map((t) => t.projectTag).filter(Boolean));
-    return Array.from(tags).sort();
-  }, [tasks]);
+  useEffect(() => {
+    listActiveProjects().then(setProjectsList).catch(() => {});
+  }, []);
 
   const filteredTasks = useMemo(() => {
     let result = [...tasks];
@@ -171,8 +175,8 @@ export default function TasksPage() {
           <InputLabel>Project</InputLabel>
           <Select value={filterProject} label="Project" onChange={(e) => setFilterProject(e.target.value)}>
             <MenuItem value="all">All Projects</MenuItem>
-            {projectTags.map((tag) => (
-              <MenuItem key={tag} value={tag}>{tag}</MenuItem>
+            {projectsList.map((p) => (
+              <MenuItem key={p.slug} value={p.slug}>{p.name}</MenuItem>
             ))}
           </Select>
         </FormControl>
@@ -189,7 +193,7 @@ export default function TasksPage() {
           <List disablePadding>
             {filteredTasks.map((task, idx) => (
               <Box key={task.id}>
-                <ListItemButton sx={{ py: 1.5 }}>
+                <ListItemButton sx={{ py: 1.5 }} onClick={() => router.push(`/tasks/${task.id}`)}>
                   <ListItemText
                     primary={
                       <Typography variant="body2" fontWeight={500}>{task.title}</Typography>

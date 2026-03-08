@@ -28,6 +28,7 @@ interface IntakePayload {
     source: IntakeSource;
     attachments?: string[];
     projectTag?: string;
+    knowledgeSourceIds?: string[];
   };
   tasks: Array<{
     title: string;
@@ -37,6 +38,7 @@ interface IntakePayload {
     priority?: string;
     sourceCitations?: string[];
     projectTag?: string;
+    knowledgeSourceIds?: string[];
   }>;
 }
 
@@ -73,7 +75,34 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (!body.intake.projectTag) {
+    return NextResponse.json(
+      { error: 'intake.projectTag is required. Call GET /api/clutch/projects for valid slugs.' },
+      { status: 400 },
+    );
+  }
+
   const svc = createServiceRoleClient();
+
+  // Validate project tag against the projects table
+  const { data: projectRows } = await svc
+    .from('projects')
+    .select('slug')
+    .eq('slug', body.intake.projectTag)
+    .eq('status', 'active')
+    .limit(1);
+
+  if (!projectRows?.length) {
+    const { data: allProjects } = await svc
+      .from('projects')
+      .select('slug')
+      .eq('status', 'active');
+    const validSlugs = (allProjects ?? []).map((p: { slug: string }) => p.slug).join(', ');
+    return NextResponse.json(
+      { error: `Invalid project tag "${body.intake.projectTag}". Valid projects: ${validSlugs}` },
+      { status: 400 },
+    );
+  }
 
   // Idempotency check
   const { data: existing } = await svc
@@ -89,7 +118,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const projectTag = body.intake.projectTag ?? '';
+  const projectTag = body.intake.projectTag;
 
   // Build parent task metadata
   const parentMetadata: Record<string, unknown> = {
@@ -99,6 +128,9 @@ export async function POST(req: NextRequest) {
     attachments: body.intake.attachments ?? [],
     intakeType: 'parent',
   };
+  if (body.intake.knowledgeSourceIds?.length) {
+    parentMetadata.knowledgeSourceIds = body.intake.knowledgeSourceIds;
+  }
 
   // Insert parent task
   const { data: parentRow, error: parentErr } = await svc
@@ -134,6 +166,7 @@ export async function POST(req: NextRequest) {
     if (t.suggestedAgent) childMeta.suggestedAgent = t.suggestedAgent;
     if (t.acceptanceCriteria) childMeta.acceptanceCriteria = t.acceptanceCriteria;
     if (t.sourceCitations?.length) childMeta.sourceCitations = t.sourceCitations;
+    if (t.knowledgeSourceIds?.length) childMeta.knowledgeSourceIds = t.knowledgeSourceIds;
 
     return {
       title: t.title,

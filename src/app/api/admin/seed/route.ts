@@ -508,7 +508,7 @@ export async function POST() {
       email: CLUTCH_SYSTEM_EMAIL,
       password: clutchPassword,
       email_confirm: true,
-      user_metadata: { name: 'Clutch (System)', role: 'contributor' },
+      user_metadata: { name: 'Clutch (System)', role: 'admin' },
     });
     if (clutchUserErr) {
       results.push(`Clutch system user: ${clutchUserErr.message}`);
