@@ -90,6 +90,9 @@ export interface Task {
   projectTag: string;
   runtimeRunId: string | null;
   lastRuntimeStatus: string | null;
+  metadata: Record<string, unknown>;
+  parentTaskId: string | null;
+  externalRef: string | null;
   createdBy: string;
   createdAt: string;
   updatedAt: string;

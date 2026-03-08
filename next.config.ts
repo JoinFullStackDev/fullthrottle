@@ -1,9 +1,12 @@
 import type { NextConfig } from "next";
-import path from "path";
 
 const nextConfig: NextConfig = {
   turbopack: {
-    root: path.resolve(__dirname, '..'),
+    root: __dirname,
+  },
+  outputFileTracingIncludes: {
+    '/api/**': ['./docs/_AGENTS/**/*'],
+    '/conversations/**': ['./docs/_AGENTS/**/*'],
   },
 };
 

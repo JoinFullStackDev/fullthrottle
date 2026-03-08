@@ -7,6 +7,8 @@ type ProfileRow = Tables<'profiles'>;
 const AGENT_AXEL_ID = 'a0000000-0000-0000-0000-000000000001';
 const AGENT_RIFF_ID = 'a0000000-0000-0000-0000-000000000002';
 const AGENT_TORQUE_ID = 'a0000000-0000-0000-0000-000000000003';
+const AGENT_CLUTCH_ID = 'a0000000-0000-0000-0000-000000000004';
+const CLUTCH_SYSTEM_EMAIL = 'clutch-system@fullstack.internal';
 
 // ---------------------------------------------------------------------------
 // Axel — Agent-Scope Override Data (from _AGENTS/AXEL/persona.md)
@@ -476,6 +478,46 @@ export async function POST() {
     },
   ] as never[]);
   results.push(auditErr ? `Audit logs: ${auditErr.message}` : 'Audit logs: 10 seeded');
+
+  // =========================================================================
+  // CLUTCH SYSTEM USER + AGENT
+  // =========================================================================
+
+  // Ensure Clutch agent row exists (migration 00016 handles this, but be safe)
+  await svc.from('agents').upsert({
+    id: AGENT_CLUTCH_ID,
+    name: 'Clutch',
+    role: 'Operations',
+    base_persona_version: 'v1.0',
+    status: 'active',
+    default_model: '',
+    provider: '',
+    description: 'The operations bridge: captures Slack requests, resolves docs, creates structured backlog tasks, and delivers completed work back to Slack and GitLab.',
+  } as never, { onConflict: 'id' });
+  results.push('Clutch agent: ensured');
+
+  // Create Clutch system user if it doesn't exist
+  const { data: existingUsers } = await svc.auth.admin.listUsers();
+  const clutchExists = existingUsers?.users?.some(
+    (u: { email?: string }) => u.email === CLUTCH_SYSTEM_EMAIL,
+  );
+
+  if (!clutchExists) {
+    const clutchPassword = process.env.CLUTCH_SYSTEM_PASSWORD || crypto.randomUUID();
+    const { data: newUser, error: clutchUserErr } = await svc.auth.admin.createUser({
+      email: CLUTCH_SYSTEM_EMAIL,
+      password: clutchPassword,
+      email_confirm: true,
+      user_metadata: { name: 'Clutch (System)', role: 'contributor' },
+    });
+    if (clutchUserErr) {
+      results.push(`Clutch system user: ${clutchUserErr.message}`);
+    } else {
+      results.push(`Clutch system user: created (id: ${newUser.user?.id}). Password: ${clutchPassword}`);
+    }
+  } else {
+    results.push('Clutch system user: already exists');
+  }
 
   return NextResponse.json({ results });
 }
