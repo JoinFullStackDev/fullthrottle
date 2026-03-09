@@ -175,6 +175,20 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Backfill project_tag on referenced knowledge sources so they appear
+  // in project-filtered views and are searchable by project.
+  const allKsIds = new Set<string>([
+    ...(body.intake.knowledgeSourceIds ?? []),
+    ...(body.tasks ?? []).flatMap((t) => t.knowledgeSourceIds ?? []),
+  ]);
+  if (allKsIds.size > 0) {
+    await svc
+      .from('knowledge_sources')
+      .update({ project_tag: projectTag } as never)
+      .in('id', [...allKsIds])
+      .is('project_tag', null);
+  }
+
   // Batch audit entries
   const auditRows = [
     {

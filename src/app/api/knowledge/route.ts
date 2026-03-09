@@ -35,8 +35,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerSupabaseClient();
-  const user = await getAdminUser(supabase);
-  if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json();
   const {

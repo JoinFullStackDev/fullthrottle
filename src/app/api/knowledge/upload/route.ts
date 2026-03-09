@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { createAuditEntry } from '@/features/audit/service-server';
-import type { Tables } from '@/lib/supabase/database.types';
-
-type ProfileRow = Tables<'profiles'>;
 
 const TEXT_EXTENSIONS = new Set(['.txt', '.md', '.csv', '.json', '.yaml', '.yml']);
 const ACCEPTED_EXTENSIONS = new Set([...TEXT_EXTENSIONS, '.pdf']);
@@ -21,7 +18,6 @@ async function extractText(file: File): Promise<string> {
   }
 
   if (ext === '.pdf') {
-    // Import from lib path to skip pdf-parse's test file loading
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const pdfParse = require('pdf-parse/lib/pdf-parse') as (buf: Buffer) => Promise<{ text: string }>;
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -37,16 +33,6 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile || !['super_admin', 'admin'].includes((profile as ProfileRow).role)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
   const formData = await req.formData();
   const file = formData.get('file') as File | null;
   const name = (formData.get('name') as string) || '';
@@ -56,6 +42,10 @@ export async function POST(req: NextRequest) {
 
   if (!file) {
     return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+  }
+
+  if (!projectTag) {
+    return NextResponse.json({ error: 'projectTag is required' }, { status: 400 });
   }
 
   const ext = getExtension(file.name);
