@@ -17,6 +17,7 @@ import UploadFileIcon from '@mui/icons-material/UploadFileOutlined';
 import DescriptionIcon from '@mui/icons-material/DescriptionOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import RefreshIcon from '@mui/icons-material/RefreshOutlined';
+import VisibilityIcon from '@mui/icons-material/VisibilityOutlined';
 import CheckCircleIcon from '@mui/icons-material/CheckCircleOutlined';
 import ErrorIcon from '@mui/icons-material/ErrorOutlined';
 import WarningIcon from '@mui/icons-material/WarningAmberOutlined';
@@ -29,6 +30,7 @@ interface KnowledgeSourceTableProps {
   refreshingId?: string | null;
   onRefresh: (id: string) => void;
   onDelete?: (id: string) => void;
+  onView?: (source: KnowledgeSource) => void;
 }
 
 export default function KnowledgeSourceTable({
@@ -37,6 +39,7 @@ export default function KnowledgeSourceTable({
   refreshingId,
   onRefresh,
   onDelete,
+  onView,
 }: KnowledgeSourceTableProps) {
   if (loading) {
     return (
@@ -74,7 +77,16 @@ export default function KnowledgeSourceTable({
             sources.map((source) => (
               <TableRow key={source.id} hover>
                 <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      cursor: onView ? 'pointer' : 'default',
+                      '&:hover .source-name': onView ? { textDecoration: 'underline' } : {},
+                    }}
+                    onClick={onView ? () => onView(source) : undefined}
+                  >
                     {source.sourceType === 'google_drive' ? (
                       <CloudIcon fontSize="small" sx={{ color: 'text.disabled' }} />
                     ) : source.sourceType === 'upload' ? (
@@ -82,7 +94,7 @@ export default function KnowledgeSourceTable({
                     ) : (
                       <DescriptionIcon fontSize="small" sx={{ color: 'text.disabled' }} />
                     )}
-                    <Typography variant="body2">{source.name}</Typography>
+                    <Typography className="source-name" variant="body2">{source.name}</Typography>
                   </Box>
                 </TableCell>
                 <TableCell>
@@ -141,17 +153,23 @@ export default function KnowledgeSourceTable({
                 </TableCell>
                 <TableCell align="right">
                   <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
+                    {onView && (
+                      <IconButton size="small" onClick={() => onView(source)} title="View content">
+                        <VisibilityIcon fontSize="small" />
+                      </IconButton>
+                    )}
                     {source.sourceType === 'google_drive' && (
                       <IconButton
                         size="small"
                         onClick={() => onRefresh(source.id)}
                         disabled={refreshingId === source.id}
+                        title="Refresh content"
                       >
                         {refreshingId === source.id ? <CircularProgress size={16} /> : <RefreshIcon fontSize="small" />}
                       </IconButton>
                     )}
                     {onDelete && (
-                      <IconButton size="small" onClick={() => onDelete(source.id)} color="error">
+                      <IconButton size="small" onClick={() => onDelete(source.id)} color="error" title="Delete">
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     )}

@@ -155,6 +155,16 @@ export async function listTasksByParent(parentId: string): Promise<Task[]> {
   return ((data ?? []) as TaskRow[]).map(rowToTask);
 }
 
+export async function deleteTask(id: string): Promise<void> {
+  const supabase = createBrowserSupabaseClient();
+  const { error } = await supabase
+    .from('tasks')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw new Error(error.message);
+}
+
 export async function getTaskCounts(): Promise<{ total: number; active: number; review: number }> {
   const supabase = createBrowserSupabaseClient();
 

@@ -4,6 +4,7 @@ export type Action =
   | 'view'
   | 'create_task'
   | 'edit_task'
+  | 'delete_task'
   | 'assign_task'
   | 'edit_persona'
   | 'propose_override'
@@ -12,18 +13,19 @@ export type Action =
   | 'view_usage'
   | 'manage_users'
   | 'manage_integrations'
+  | 'delete_agent'
   | 'admin_access';
 
 const ROLE_PERMISSIONS: Record<string, readonly Action[]> = {
   super_admin: [
-    'view', 'create_task', 'edit_task', 'assign_task',
+    'view', 'create_task', 'edit_task', 'delete_task', 'assign_task',
     'edit_persona', 'propose_override', 'apply_override',
-    'view_audit', 'view_usage', 'manage_users', 'manage_integrations', 'admin_access',
+    'view_audit', 'view_usage', 'manage_users', 'manage_integrations', 'delete_agent', 'admin_access',
   ],
   admin: [
-    'view', 'create_task', 'edit_task', 'assign_task',
+    'view', 'create_task', 'edit_task', 'delete_task', 'assign_task',
     'edit_persona', 'propose_override', 'apply_override',
-    'view_audit', 'view_usage', 'manage_integrations', 'admin_access',
+    'view_audit', 'view_usage', 'manage_integrations', 'delete_agent', 'admin_access',
   ],
   team_lead: [
     'view', 'create_task', 'edit_task', 'assign_task',

@@ -43,6 +43,8 @@ import { PageContainer, Header, SectionContainer } from '@/components/layout';
 import { listProjects, listActiveProjects, createProject, updateProject } from '@/features/projects/service';
 import type { Project } from '@/lib/types';
 import UsageStatBlock from '@/features/usage/components/UsageStatBlock';
+import { getUsageSummary } from '@/features/usage/service';
+import type { UsageSummary } from '@/features/usage/service';
 import { listAuditLogs } from '@/features/audit/service';
 import {
   listKnowledgeSources,
@@ -156,30 +158,6 @@ export default function AdminPage() {
     return name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   };
 
-  // ===== Dev Seed =====
-  const [seedLoading, setSeedLoading] = useState(false);
-  const [seedResult, setSeedResult] = useState<string[] | null>(null);
-  const [seedError, setSeedError] = useState<string | null>(null);
-
-  const handleSeed = async () => {
-    setSeedLoading(true);
-    setSeedResult(null);
-    setSeedError(null);
-    try {
-      const res = await fetch('/api/admin/seed', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) {
-        setSeedError(data.error || 'Seed failed');
-      } else {
-        setSeedResult(data.results);
-      }
-    } catch (err) {
-      setSeedError((err as Error).message);
-    } finally {
-      setSeedLoading(false);
-    }
-  };
-
   // ===== Profiles (shared by audit filters + users tab) =====
   const [profiles, setProfiles] = useState<User[]>([]);
   useEffect(() => {
@@ -223,6 +201,28 @@ export default function AdminPage() {
     }).catch(() => {});
   }, []);
 
+  // ===== Usage state =====
+  const [usageSummary, setUsageSummary] = useState<UsageSummary | null>(null);
+  const [usageLoading, setUsageLoading] = useState(false);
+  const [usageError, setUsageError] = useState<string | null>(null);
+
+  const loadUsage = useCallback(async () => {
+    setUsageLoading(true);
+    setUsageError(null);
+    try {
+      const summary = await getUsageSummary();
+      setUsageSummary(summary);
+    } catch (err) {
+      setUsageError((err as Error).message);
+    } finally {
+      setUsageLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tab === 1) loadUsage();
+  }, [tab, loadUsage]);
+
   // ===== Knowledge Sources state =====
   const [knowledgeSources, setKnowledgeSources] = useState<KnowledgeSource[]>([]);
   const [ksLoading, setKsLoading] = useState(true);
@@ -236,6 +236,12 @@ export default function AdminPage() {
   const [ksRefreshing, setKsRefreshing] = useState<string | null>(null);
   const [ksUploadOpen, setKsUploadOpen] = useState(false);
   const [allAgents, setAllAgents] = useState<Agent[]>([]);
+
+  const agentNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const a of allAgents) map.set(a.id, a.name);
+    return map;
+  }, [allAgents]);
 
   const loadKnowledgeSources = useCallback(async () => {
     setKsLoading(true);
@@ -394,38 +400,6 @@ export default function AdminPage() {
     <PageContainer>
       <Header title="Admin" subtitle="Audit logs, usage, knowledge sources, and user management" />
 
-      {process.env.NODE_ENV !== 'production' && (
-        <Card sx={{ mb: 3, p: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="body2" fontWeight={600}>Dev Seed</Typography>
-              <Typography variant="caption" color="text.secondary">
-                Populate persona overrides, tasks, conversations, and audit logs from agent persona docs.
-              </Typography>
-            </Box>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={handleSeed}
-              disabled={seedLoading}
-              startIcon={seedLoading ? <CircularProgress size={16} color="inherit" /> : undefined}
-            >
-              {seedLoading ? 'Seeding...' : 'Seed Dev Data'}
-            </Button>
-          </Box>
-          {seedResult && (
-            <Alert severity="success" sx={{ mt: 1.5 }}>
-              {seedResult.join(' · ')}
-            </Alert>
-          )}
-          {seedError && (
-            <Alert severity="error" sx={{ mt: 1.5 }}>
-              {seedError}
-            </Alert>
-          )}
-        </Card>
-      )}
-
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={tab} onChange={(_, v) => setTab(v)}>
           <Tab label="Audit Log" />
@@ -524,16 +498,88 @@ export default function AdminPage() {
       {/* ===== Usage Tab ===== */}
       {tab === 1 && (
         <SectionContainer>
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 3 }}>
-            <UsageStatBlock label="Total Tokens" value="0" sublabel="No runtime connected" icon={<TokenIcon />} />
-            <UsageStatBlock label="Total Cost" value="$0.00" sublabel="No runtime connected" icon={<MoneyOffIcon />} />
-            <UsageStatBlock label="Active Agents" value={0} sublabel="No runtime connected" icon={<SmartToyIcon />} />
-          </Box>
-          <Card sx={{ p: 4, textAlign: 'center' }}>
-            <Typography variant="body2" color="text.secondary">
-              Detailed usage metrics will be populated when agents are connected to a runtime.
-            </Typography>
-          </Card>
+          {usageLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress /></Box>
+          ) : usageError ? (
+            <Alert severity="error" sx={{ mb: 2 }}>{usageError}</Alert>
+          ) : (
+            <>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 3 }}>
+                <UsageStatBlock
+                  label="Total Tokens"
+                  value={usageSummary ? usageSummary.totalTokens.toLocaleString() : '—'}
+                  sublabel={usageSummary?.events.length ? `Across ${usageSummary.events.length} events` : 'No usage recorded'}
+                  icon={<TokenIcon />}
+                />
+                <UsageStatBlock
+                  label="Total Cost"
+                  value={usageSummary ? `$${usageSummary.totalCost.toFixed(2)}` : '—'}
+                  sublabel="Estimated"
+                  icon={<MoneyOffIcon />}
+                />
+                <UsageStatBlock
+                  label="Active Agents"
+                  value={usageSummary?.activeAgentIds.length ?? 0}
+                  sublabel={usageSummary?.activeAgentIds.length ? 'With recorded usage' : 'No agents with usage'}
+                  icon={<SmartToyIcon />}
+                />
+              </Box>
+
+              {usageSummary && usageSummary.events.length > 0 ? (
+                <TableContainer component={Card}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Timestamp</TableCell>
+                        <TableCell>Agent</TableCell>
+                        <TableCell>Model</TableCell>
+                        <TableCell align="right">Tokens</TableCell>
+                        <TableCell align="right">Cost</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {usageSummary.events.map((event) => (
+                        <TableRow key={event.id} hover>
+                          <TableCell>
+                            <Typography variant="caption">
+                              {new Date(event.timestamp).toLocaleString()}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">
+                              {agentNameMap.get(event.agentId) ?? event.agentId.slice(0, 8)}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={event.model || 'unknown'}
+                              size="small"
+                              variant="outlined"
+                              sx={{ height: 22, fontSize: '0.7rem', fontFamily: 'monospace' }}
+                            />
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2">{event.tokenCount.toLocaleString()}</Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2" color="text.secondary">
+                              ${Number(event.costEstimate).toFixed(4)}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              ) : (
+                <Card sx={{ p: 4, textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    No usage events recorded yet. Events are logged when agents process messages.
+                  </Typography>
+                </Card>
+              )}
+            </>
+          )}
         </SectionContainer>
       )}
 

@@ -153,6 +153,30 @@ export async function updateAgent(
   return updated;
 }
 
+export async function deleteAgent(id: string, audit?: AuditContext): Promise<void> {
+  const supabase = createBrowserSupabaseClient();
+
+  if (audit) {
+    const before = await getAgentById(id);
+    await createAuditEntry({
+      actorId: audit.actorId,
+      actionType: 'agent_deleted',
+      entityType: 'Agent',
+      entityId: id,
+      beforeState: before ? { name: before.name, role: before.role, status: before.status } : null,
+      afterState: null,
+      reason: audit.reason,
+    }).catch(() => {});
+  }
+
+  const { error } = await supabase
+    .from('agents')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw new Error(error.message);
+}
+
 export async function getAgentCount(): Promise<number> {
   const supabase = createBrowserSupabaseClient();
   const { count, error } = await supabase

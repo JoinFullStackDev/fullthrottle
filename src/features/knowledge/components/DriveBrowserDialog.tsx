@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Card from '@mui/material/Card';
@@ -30,12 +30,12 @@ import Alert from '@mui/material/Alert';
 import Checkbox from '@mui/material/Checkbox';
 import Breadcrumbs from '@mui/material/Breadcrumbs';
 import Link from '@mui/material/Link';
-import CloudIcon from '@mui/icons-material/CloudOutlined';
 import FolderIcon from '@mui/icons-material/FolderOutlined';
 import FolderOpenIcon from '@mui/icons-material/FolderOpenOutlined';
 import ArrowBackIcon from '@mui/icons-material/ArrowBackOutlined';
 import StorageIcon from '@mui/icons-material/StorageOutlined';
 import DescriptionIcon from '@mui/icons-material/DescriptionOutlined';
+import LinkIcon from '@mui/icons-material/LinkOutlined';
 import {
   createKnowledgeSource,
   refreshKnowledgeSource,
@@ -43,7 +43,7 @@ import {
   discoverDriveRoots,
 } from '@/features/knowledge/service';
 import { listIntegrationsByType } from '@/features/integrations/service';
-import type { Agent, Integration, Project } from '@/lib/types';
+import type { Agent, Project } from '@/lib/types';
 
 interface DriveBrowserDialogProps {
   open: boolean;
@@ -65,8 +65,8 @@ export default function DriveBrowserDialog({
   projects,
   agents,
 }: DriveBrowserDialogProps) {
-  const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [intId, setIntId] = useState('');
+  const [connected, setConnected] = useState<boolean | null>(null);
   const [folderTag, setFolderTag] = useState('');
   const [projectTag, setProjectTag] = useState('');
   const [agentId, setAgentId] = useState('');
@@ -82,73 +82,50 @@ export default function DriveBrowserDialog({
   const [rootsLoaded, setRootsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadIntegrations = useCallback(async () => {
-    try {
-      const ints = await listIntegrationsByType('google_drive');
-      setIntegrations(ints);
-      return ints;
-    } catch {
-      return [];
-    }
-  }, []);
+  const initRef = useRef(false);
 
-  useEffect(() => {
-    if (open) loadIntegrations();
-  }, [open, loadIntegrations]);
-
-  const handleCreateAndConnect = async () => {
-    setError(null);
-    setDiscovering(true);
-    try {
-      const res = await fetch('/api/integrations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'google_drive',
-          config: { accessType: 'reader' },
-          reason: 'Auto-created for knowledge source browsing',
-        }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? 'Failed to create integration');
-      }
-      const { integration } = await res.json();
-      const newId = integration.id;
-
-      const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-      if (!clientId) {
-        throw new Error('Google OAuth Client ID not configured. Set NEXT_PUBLIC_GOOGLE_CLIENT_ID in .env');
-      }
-      const redirectUri = `${window.location.origin}/api/integrations/google/callback`;
-      const scope = 'https://www.googleapis.com/auth/drive.readonly';
-      const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&access_type=offline&prompt=consent&state=${encodeURIComponent(newId)}`;
-      window.location.href = url;
-    } catch (err) {
-      setError((err as Error).message);
-      setDiscovering(false);
-    }
-  };
-
-  const handleLoadRoots = async (integrationId: string) => {
-    setIntId(integrationId);
+  const initDrive = useCallback(async () => {
     setDiscovering(true);
     setError(null);
+    setConnected(null);
     setRootsLoaded(false);
     setPath([]);
     setFolders([]);
     setFiles([]);
     setSelectedIds(new Set());
+
     try {
-      const driveRoots = await discoverDriveRoots(integrationId);
+      const ints = await listIntegrationsByType('google_drive');
+      const systemInt = ints.find((i) => !i.agentId && i.hasCredentials);
+
+      if (!systemInt) {
+        setConnected(false);
+        return;
+      }
+
+      setIntId(systemInt.id);
+      setConnected(true);
+
+      const driveRoots = await discoverDriveRoots(systemInt.id);
       setRoots(driveRoots);
       setRootsLoaded(true);
     } catch (err) {
       setError((err as Error).message);
+      setConnected(true);
     } finally {
       setDiscovering(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (open && !initRef.current) {
+      initRef.current = true;
+      initDrive();
+    }
+    if (!open) {
+      initRef.current = false;
+    }
+  }, [open, initDrive]);
 
   const handleNavigate = async (folderId: string, folderName: string, isRoot = false) => {
     setDiscovering(true);
@@ -231,7 +208,6 @@ export default function DriveBrowserDialog({
           refreshIntervalMinutes: 60,
           mimeType: file.mimeType,
         });
-        // Auto-fetch content immediately after registration
         try {
           await refreshKnowledgeSource(newSource.id);
         } catch {
@@ -252,61 +228,65 @@ export default function DriveBrowserDialog({
       <DialogTitle>Browse Google Drive</DialogTitle>
       <DialogContent>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-          {integrations.length === 0 ? (
+          {connected === false && (
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, py: 3 }}>
-              <CloudIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
+              <LinkIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
               <Typography variant="body2" color="text.secondary" textAlign="center">
-                No Google Drive connection found. Connect your Google account to browse Drive folders.
+                Google Drive is not connected. Connect your account from the Integrations page to browse files.
               </Typography>
               <Button
                 variant="contained"
-                startIcon={discovering ? <CircularProgress size={16} color="inherit" /> : <CloudIcon />}
-                onClick={handleCreateAndConnect}
-                disabled={discovering}
+                size="small"
+                href="/integrations"
               >
-                Connect Google Drive
+                Go to Integrations
               </Button>
-              {error && <Alert severity="error" sx={{ width: '100%' }}>{error}</Alert>}
             </Box>
-          ) : (
-            <FormControl fullWidth size="small">
-              <InputLabel>Google Drive Integration</InputLabel>
-              <Select
-                value={intId}
-                label="Google Drive Integration"
-                onChange={(e) => handleLoadRoots(e.target.value)}
-              >
-                {integrations.map((int) => (
-                  <MenuItem key={int.id} value={int.id}>
-                    {int.agentName ? `${int.agentName} — Google Drive` : `Google Drive (${int.id.slice(0, 8)})`}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
           )}
 
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-            <TextField label="Folder Tag" value={folderTag} onChange={(e) => setFolderTag(e.target.value)} size="small" placeholder="architecture, sow, qa" helperText="Applied to all selected files" />
-            <FormControl size="small" sx={{ minWidth: 180 }} required>
-              <InputLabel>Project</InputLabel>
-              <Select value={projectTag} label="Project" onChange={(e) => setProjectTag(e.target.value)}>
-                {projects.map((p) => (
-                  <MenuItem key={p.id} value={p.slug}>{p.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl size="small" sx={{ minWidth: 160 }}>
-              <InputLabel>Assign to Agent</InputLabel>
-              <Select value={agentId} label="Assign to Agent" onChange={(e) => setAgentId(e.target.value)}>
-                <MenuItem value="">All Agents</MenuItem>
-                {agents.map((a) => (
-                  <MenuItem key={a.id} value={a.id}>{a.name} ({a.role})</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
+          {connected === true && (
+            <>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <TextField
+                  label="Folder Tag"
+                  value={folderTag}
+                  onChange={(e) => setFolderTag(e.target.value)}
+                  size="small"
+                  placeholder="architecture, sow, qa"
+                  helperText="Applied to all selected files"
+                />
+                <FormControl size="small" sx={{ minWidth: 180 }} required>
+                  <InputLabel>Project</InputLabel>
+                  <Select value={projectTag} label="Project" onChange={(e) => setProjectTag(e.target.value)}>
+                    {projects.map((p) => (
+                      <MenuItem key={p.id} value={p.slug}>{p.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl size="small" sx={{ minWidth: 160 }}>
+                  <InputLabel>Assign to Agent</InputLabel>
+                  <Select value={agentId} label="Assign to Agent" onChange={(e) => setAgentId(e.target.value)}>
+                    <MenuItem value="">All Agents</MenuItem>
+                    {agents.map((a) => (
+                      <MenuItem key={a.id} value={a.id}>{a.name} ({a.role})</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
 
-          {error && integrations.length > 0 && <Alert severity="error">{error}</Alert>}
+              <Typography variant="caption" color="text.disabled">
+                Assigning a project helps organize sources. All knowledge remains globally accessible to Clutch regardless of project or agent assignment.
+              </Typography>
+            </>
+          )}
+
+          {error && <Alert severity="error">{error}</Alert>}
+
+          {discovering && !rootsLoaded && path.length === 0 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress size={24} />
+            </Box>
+          )}
 
           {rootsLoaded && path.length === 0 && (
             <Card variant="outlined">
@@ -437,12 +417,6 @@ export default function DriveBrowserDialog({
                 </Card>
               )}
             </>
-          )}
-
-          {discovering && !rootsLoaded && path.length === 0 && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress size={24} />
-            </Box>
           )}
         </Box>
       </DialogContent>

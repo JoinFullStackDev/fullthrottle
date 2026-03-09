@@ -76,11 +76,11 @@ export async function GET(req: NextRequest) {
       .update({ status: 'connected' } as never)
       .eq('id', integrationId);
 
-    return NextResponse.redirect(new URL('/admin?google_connected=true', req.url));
+    return NextResponse.redirect(new URL('/integrations?google_connected=true', req.url));
   } catch (err) {
     const message = err instanceof Error ? err.message : 'token_exchange_failed';
     return NextResponse.redirect(
-      new URL(`/admin?google_error=${encodeURIComponent(message)}`, req.url),
+      new URL(`/integrations?google_error=${encodeURIComponent(message)}`, req.url),
     );
   }
 }

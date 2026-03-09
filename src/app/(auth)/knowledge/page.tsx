@@ -12,7 +12,7 @@ import CloudIcon from '@mui/icons-material/CloudOutlined';
 import { PageContainer, Header, SectionContainer } from '@/components/layout';
 import { listActiveProjects } from '@/features/projects/service';
 import { listKnowledgeSources, refreshKnowledgeSource } from '@/features/knowledge/service';
-import { KnowledgeSourceTable, UploadDialog, DriveBrowserDialog } from '@/features/knowledge/components';
+import { KnowledgeSourceTable, KnowledgePreviewDialog, UploadDialog, DriveBrowserDialog } from '@/features/knowledge/components';
 import { listAgents } from '@/features/agents/service';
 import type { KnowledgeSource, Agent, Project } from '@/lib/types';
 
@@ -25,6 +25,7 @@ export default function KnowledgePage() {
   const [projectFilter, setProjectFilter] = useState('all');
   const [uploadOpen, setUploadOpen] = useState(false);
   const [driveOpen, setDriveOpen] = useState(false);
+  const [previewSource, setPreviewSource] = useState<KnowledgeSource | null>(null);
 
   const loadSources = useCallback(async () => {
     setLoading(true);
@@ -119,6 +120,7 @@ export default function KnowledgePage() {
           loading={loading}
           refreshingId={refreshingId}
           onRefresh={handleRefresh}
+          onView={setPreviewSource}
         />
       </SectionContainer>
 
@@ -136,6 +138,12 @@ export default function KnowledgePage() {
         onRegisterComplete={loadSources}
         projects={projects}
         agents={agents}
+      />
+
+      <KnowledgePreviewDialog
+        open={!!previewSource}
+        onClose={() => setPreviewSource(null)}
+        source={previewSource}
       />
     </PageContainer>
   );

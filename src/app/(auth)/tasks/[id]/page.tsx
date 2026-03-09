@@ -1,7 +1,7 @@
 'use client';
 
 import { use, useState, useEffect, useCallback } from 'react';
-import { notFound } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Tabs from '@mui/material/Tabs';
@@ -11,14 +11,23 @@ import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import IconButton from '@mui/material/IconButton';
+import DeleteIcon from '@mui/icons-material/Delete';
 import SmartToyIcon from '@mui/icons-material/SmartToyOutlined';
 import PersonIcon from '@mui/icons-material/PersonOutlined';
 import LightbulbIcon from '@mui/icons-material/LightbulbOutlined';
 import CallSplitIcon from '@mui/icons-material/CallSplitOutlined';
 import InputIcon from '@mui/icons-material/InputOutlined';
 import { PageContainer, Header, SectionContainer } from '@/components/layout';
-import { getTaskById } from '@/features/tasks/service';
+import { getTaskById, deleteTask } from '@/features/tasks/service';
 import { useAgents } from '@/features/agents/hooks/useAgents';
+import { useAuth } from '@/hooks/useAuth';
+import { can } from '@/lib/permissions';
 import { listProfiles } from '@/lib/services/profiles';
 import {
   TASK_STATUS_LABELS,
@@ -47,12 +56,29 @@ const AGENT_LABELS: Record<string, string> = {
 
 export default function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
+  const { user } = useAuth();
   const [task, setTask] = useState<Task | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState(0);
   const { agents } = useAgents();
   const [profiles, setProfiles] = useState<User[]>([]);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const canDelete = can(user?.role, 'delete_task');
+
+  const handleDelete = async () => {
+    setDeleteLoading(true);
+    try {
+      await deleteTask(id);
+      router.push('/tasks');
+    } catch {
+      setDeleteLoading(false);
+      setDeleteOpen(false);
+    }
+  };
 
   const loadTask = useCallback(async () => {
     setIsLoading(true);
@@ -113,6 +139,18 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
           { label: 'Tasks', href: '/tasks' },
           { label: task.title },
         ]}
+        actions={
+          canDelete ? (
+            <IconButton
+              color="error"
+              onClick={() => setDeleteOpen(true)}
+              aria-label="Delete task"
+              title="Delete task"
+            >
+              <DeleteIcon />
+            </IconButton>
+          ) : undefined
+        }
       />
 
       <Card sx={{ mb: 3 }}>
@@ -208,6 +246,29 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
       {tab === (hasDetails ? (hasRelated ? 3 : 2) : (hasRelated ? 2 : 1)) && (
         <TaskActivityLog taskId={task.id} />
       )}
+
+      <Dialog open={deleteOpen} onClose={() => !deleteLoading && setDeleteOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Delete Task</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">
+            Are you sure you want to permanently delete <strong>{task.title}</strong>? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDeleteOpen(false)} variant="outlined" color="inherit" disabled={deleteLoading}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDelete}
+            variant="contained"
+            color="error"
+            disabled={deleteLoading}
+            startIcon={deleteLoading ? <CircularProgress size={16} color="inherit" /> : <DeleteIcon />}
+          >
+            {deleteLoading ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </PageContainer>
   );
 }
