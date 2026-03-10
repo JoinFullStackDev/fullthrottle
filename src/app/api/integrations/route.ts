@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const body = await req.json();
-  const { type, agentId, config, credentials, reason } = body;
+  const { type, agentId, config, credentials, status, reason } = body;
 
   if (!type || !reason) {
     return NextResponse.json({ error: 'type and reason are required' }, { status: 400 });
@@ -56,12 +56,14 @@ export async function POST(req: NextRequest) {
   const svc = createServiceRoleClient();
   const hasCredentials = credentials && Object.keys(credentials).length > 0;
 
+  const resolvedStatus = status ?? (hasCredentials ? 'configured' : 'not_configured');
+
   const { data: row, error } = await svc
     .from('integrations')
     .insert({
       type,
       agent_id: agentId || null,
-      status: hasCredentials ? 'configured' : 'not_configured',
+      status: resolvedStatus,
       config: config || {},
       created_by: user.id,
       updated_by: user.id,

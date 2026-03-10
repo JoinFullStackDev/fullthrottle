@@ -192,6 +192,14 @@ export default function IntegrationsPage() {
                       {(gitlabConfig.instanceUrl as string) || 'Not set'}
                     </Typography>
                   </Box>
+                  {typeof gitlabConfig.verifiedUser === 'string' && gitlabConfig.verifiedUser && (
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 90 }}>
+                        User
+                      </Typography>
+                      <Typography variant="body2">@{gitlabConfig.verifiedUser}</Typography>
+                    </Box>
+                  )}
                   <Box sx={{ display: 'flex', gap: 2 }}>
                     <Typography variant="caption" color="text.secondary" sx={{ minWidth: 90 }}>
                       Credentials
@@ -203,10 +211,20 @@ export default function IntegrationsPage() {
                   {typeof gitlabConfig.defaultNamespace === 'string' && gitlabConfig.defaultNamespace && (
                     <Box sx={{ display: 'flex', gap: 2 }}>
                       <Typography variant="caption" color="text.secondary" sx={{ minWidth: 90 }}>
-                        Namespace
+                        Group
                       </Typography>
                       <Typography variant="body2">
                         {gitlabConfig.defaultNamespace}
+                      </Typography>
+                    </Box>
+                  )}
+                  {Array.isArray(gitlabConfig.projectMappings) && gitlabConfig.projectMappings.length > 0 && (
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 90 }}>
+                        Projects
+                      </Typography>
+                      <Typography variant="body2">
+                        {gitlabConfig.projectMappings.length} project{gitlabConfig.projectMappings.length !== 1 ? 's' : ''} synced
                       </Typography>
                     </Box>
                   )}
