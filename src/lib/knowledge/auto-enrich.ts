@@ -21,6 +21,7 @@
 import fs from 'fs';
 import path from 'path';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { searchProjectFiles } from '@/lib/projects/explorer';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -33,7 +34,9 @@ export interface KnowledgeMatch {
   excerpt: string;
   project: string | null;
   /** Where the match came from */
-  source: 'knowledge_base' | 'docs' | 'agent_persona';
+  source: 'knowledge_base' | 'docs' | 'agent_persona' | 'project_files';
+  /** Relative file path — only present for project_files matches */
+  filePath?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -251,12 +254,52 @@ function searchAgentPersonas(docsDir: string, terms: string[], limit = 2): Knowl
 // Public API
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Source 4: Client project files (read-only extracted codebases)
+// ---------------------------------------------------------------------------
+
+function searchProjectFileSource(terms: string[], projectTag: string, limit = 5): KnowledgeMatch[] {
+  // Map project tag to project slug — tags may use hyphens, slugs are folder names
+  // Convention: try exact match first, then strip hyphens
+  const matches = searchProjectFiles(terms, projectTag, limit);
+
+  if (matches.length === 0 && projectTag) {
+    // Fallback: search without project filter in case slug doesn't match tag exactly
+    const allMatches = searchProjectFiles(terms, undefined, limit);
+    return allMatches.map((m) => ({
+      title: m.file.name,
+      excerpt: m.excerpt,
+      project: m.projectSlug,
+      source: 'project_files' as const,
+      filePath: m.file.relativePath,
+    }));
+  }
+
+  return matches.map((m) => ({
+    title: m.file.name,
+    excerpt: m.excerpt,
+    project: m.projectSlug,
+    source: 'project_files' as const,
+    filePath: m.file.relativePath,
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
 /**
- * Search all three knowledge sources for content relevant to a request.
+ * Search all four knowledge sources for content relevant to a request.
+ *
+ * Priority order:
+ *   1. Indexed knowledge base (Supabase) — PRDs, SOWs, uploaded docs
+ *   2. Repo docs/ folder — design guides, architecture, planning
+ *   3. Agent persona docs — when request touches agent behavior
+ *   4. Client project files — source code, READMEs, configs in ~/Desktop/fullstack/projects
  *
  * @param requestText  The raw Slack message text
  * @param projectTag   The project slug identified from the request
- * @param limit        Max results per source (default 5 for KB, 3 for docs, 2 for personas)
+ * @param limit        Max results per source (default 5 for KB, 3 for docs/personas/projects)
  */
 export async function findRelevantKnowledgeSources(
   requestText: string,
@@ -268,17 +311,18 @@ export async function findRelevantKnowledgeSources(
 
   const docsDir = path.join(process.cwd(), 'docs');
 
-  // Fan out all three searches in parallel
-  const [kbMatches, docMatches, personaMatches] = await Promise.all([
+  // Fan out all four searches in parallel
+  const [kbMatches, docMatches, personaMatches, projectMatches] = await Promise.all([
     searchKnowledgeBase(terms, projectTag, limit),
     Promise.resolve(searchDocFiles(collectDocFiles(docsDir), terms, 3)),
     Promise.resolve(searchAgentPersonas(docsDir, terms, 2)),
+    Promise.resolve(searchProjectFileSource(terms, projectTag, 4)),
   ]);
 
-  // Merge, dedup by title
+  // Merge, dedup by title — KB and docs first (higher authority), projects last
   const seen = new Set<string>();
   const all: KnowledgeMatch[] = [];
-  for (const match of [...kbMatches, ...docMatches, ...personaMatches]) {
+  for (const match of [...kbMatches, ...docMatches, ...personaMatches, ...projectMatches]) {
     if (!seen.has(match.title)) {
       seen.add(match.title);
       all.push(match);
@@ -304,11 +348,12 @@ export function extractSourceIds(matches: KnowledgeMatch[]): string[] {
  */
 export function formatKnowledgeMatchSummary(matches: KnowledgeMatch[]): string {
   if (matches.length === 0) {
-    return '⚠️ No relevant docs found in the knowledge base. If there\'s a PRD or spec for this, drop the link and I\'ll index it.';
+    return '⚠️ No relevant docs found in the knowledge base or project files. If there\'s a PRD or spec for this, drop the link and I\'ll index it.';
   }
 
   const kbDocs = matches.filter((m) => m.source === 'knowledge_base');
   const repoDocs = matches.filter((m) => m.source === 'docs');
+  const projectFiles = matches.filter((m) => m.source === 'project_files');
 
   const parts: string[] = [];
   if (kbDocs.length > 0) {
@@ -316,6 +361,9 @@ export function formatKnowledgeMatchSummary(matches: KnowledgeMatch[]): string {
   }
   if (repoDocs.length > 0) {
     parts.push(`📄 *Docs:* ${repoDocs.map((m) => m.title).join(', ')}`);
+  }
+  if (projectFiles.length > 0) {
+    parts.push(`🗂️ *Project files:* ${projectFiles.map((m) => m.title).join(', ')}`);
   }
 
   return parts.join('\n');
