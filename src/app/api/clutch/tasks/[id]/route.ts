@@ -141,7 +141,8 @@ export async function PATCH(
 
   // Support metadata merge (e.g. store agent output)
   if (body.metadata !== undefined && typeof body.metadata === 'object') {
-    const existingMeta = ((existing as Record<string, unknown>).metadata ?? {}) as Record<string, unknown>;
+    const existingRow = existing as unknown as Record<string, unknown>;
+    const existingMeta = (existingRow.metadata ?? {}) as Record<string, unknown>;
     updates.metadata = { ...existingMeta, ...body.metadata };
   }
 
