@@ -17,6 +17,7 @@ import SmartToyIcon from '@mui/icons-material/SmartToyOutlined';
 import AssignmentIcon from '@mui/icons-material/AssignmentOutlined';
 import ChatIcon from '@mui/icons-material/ChatOutlined';
 import MenuBookIcon from '@mui/icons-material/MenuBookOutlined';
+import FolderIcon from '@mui/icons-material/FolderOutlined';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettingsOutlined';
 import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructionsOutlined';
 import LogoutIcon from '@mui/icons-material/LogoutOutlined';
@@ -43,6 +44,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Tasks', href: '/tasks', icon: AssignmentIcon },
   { label: 'Conversations', href: '/conversations', icon: ChatIcon },
   { label: 'Knowledge', href: '/knowledge', icon: MenuBookIcon },
+  { label: 'Docs', href: '/docs', icon: FolderIcon },
   { label: 'Integrations', href: '/integrations', icon: IntegrationInstructionsIcon, requiredAction: 'admin_access' },
   { label: 'Admin', href: '/admin', icon: AdminPanelSettingsIcon, requiredAction: 'admin_access' },
 ];
