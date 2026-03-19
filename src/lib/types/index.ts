@@ -210,3 +210,40 @@ export interface Project {
   createdAt: string;
   updatedAt: string;
 }
+
+// Docs feature
+export interface DocFolder {
+  id: string;
+  name: string;
+  parentId: string | null;
+  projectTag: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  children?: DocFolder[];
+}
+
+export interface Doc {
+  id: string;
+  title: string;
+  content: string;
+  folderId: string | null;
+  projectTag: string | null;
+  createdBy: string;
+  updatedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DocFile {
+  id: string;
+  name: string;
+  storagePath: string;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  folderId: string | null;
+  projectTag: string | null;
+  createdBy: string;
+  createdAt: string;
+  publicUrl?: string;
+}
