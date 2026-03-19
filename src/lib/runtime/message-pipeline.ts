@@ -6,7 +6,27 @@ import type { StreamChunk, ChatMessage } from './providers/types';
 import type { ResolvedDocument } from '@/lib/knowledge/types';
 import type { Tables, Json } from '@/lib/supabase/database.types';
 
-const MAX_HISTORY_MESSAGES = 50;
+// ---------------------------------------------------------------------------
+// Context budget constants
+// ---------------------------------------------------------------------------
+
+/** Max conversation history messages per channel. Slack threads can be long;
+ *  keep the window tighter there to avoid blowing context on stale turns. */
+const MAX_HISTORY_MESSAGES: Record<'slack' | 'web', number> = {
+  slack: 15,
+  web: 30,
+};
+
+/** Rough token budget for conversation history (chars ÷ 4 ≈ tokens).
+ *  Oldest messages are dropped first when the budget is exceeded. */
+const MAX_HISTORY_TOKENS = 4_000;
+
+/** Maximum total characters injected from knowledge documents.
+ *  ~8 000 tokens at 4 chars/token. Error docs are dropped first,
+ *  then stale docs, then the remainder is hard-truncated. */
+const MAX_KNOWLEDGE_CHARS = 32_000;
+
+// ---------------------------------------------------------------------------
 
 type AgentRow = Tables<'agents'>;
 type MsgRow = Tables<'conversation_messages'>;
@@ -32,23 +52,47 @@ async function getAgent(agentId: string): Promise<AgentRow> {
   return data as AgentRow;
 }
 
-async function loadHistory(conversationId: string): Promise<ChatMessage[]> {
+/** Rough token estimate: 1 token ≈ 4 characters. */
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+/**
+ * Load conversation history with channel-aware message cap and token budget.
+ * Fetches the cap for the given channel, then trims oldest messages if the
+ * total estimated tokens exceed MAX_HISTORY_TOKENS.
+ */
+async function loadHistory(
+  conversationId: string,
+  channel: 'web' | 'slack',
+): Promise<ChatMessage[]> {
   const supabase = createServiceRoleClient();
+  const limit = MAX_HISTORY_MESSAGES[channel];
+
   const { data, error } = await supabase
     .from('conversation_messages')
     .select('*')
     .eq('conversation_id', conversationId)
     .order('created_at', { ascending: true })
-    .limit(MAX_HISTORY_MESSAGES);
+    .limit(limit);
 
   if (error) throw new Error(`Failed to load history: ${error.message}`);
 
-  return ((data ?? []) as MsgRow[])
+  const messages: ChatMessage[] = ((data ?? []) as MsgRow[])
     .filter((m) => m.sender_type !== 'system')
     .map((m) => ({
       role: m.sender_type === 'human' ? 'user' as const : 'assistant' as const,
       content: m.content,
     }));
+
+  // Token-budget trim: drop oldest messages until we're within budget.
+  let totalTokens = messages.reduce((sum, m) => sum + estimateTokens(m.content), 0);
+  while (messages.length > 1 && totalTokens > MAX_HISTORY_TOKENS) {
+    const removed = messages.shift()!;
+    totalTokens -= estimateTokens(removed.content);
+  }
+
+  return messages;
 }
 
 async function storeMessage(
@@ -82,7 +126,61 @@ async function logUsage(
   });
 }
 
-function formatKnowledgeSection(docs: ResolvedDocument[]): string {
+/**
+ * Prune knowledge documents to stay within MAX_KNOWLEDGE_CHARS.
+ *
+ * Priority order for dropping:
+ *   1. Error docs (content unavailable anyway)
+ *   2. Stale docs (outdated — lowest value)
+ *   3. Fresh docs (truncated last resort)
+ *
+ * Explicitly referenced docs (documentIds) are never dropped, only truncated.
+ */
+function pruneKnowledgeDocs(
+  docs: ResolvedDocument[],
+  referencedNames: Set<string>,
+): { pruned: ResolvedDocument[]; truncated: boolean } {
+  let totalChars = docs.reduce((sum, d) => sum + d.content.length, 0);
+
+  if (totalChars <= MAX_KNOWLEDGE_CHARS) {
+    return { pruned: docs, truncated: false };
+  }
+
+  let working = [...docs];
+
+  // Pass 1: drop error docs that aren't explicitly referenced
+  working = working.filter(
+    (d) => d.status !== 'error' || referencedNames.has(d.name),
+  );
+  totalChars = working.reduce((sum, d) => sum + d.content.length, 0);
+
+  // Pass 2: drop stale docs that aren't explicitly referenced
+  if (totalChars > MAX_KNOWLEDGE_CHARS) {
+    working = working.filter(
+      (d) => d.status !== 'stale' || referencedNames.has(d.name),
+    );
+    totalChars = working.reduce((sum, d) => sum + d.content.length, 0);
+  }
+
+  // Pass 3: hard-truncate remaining content to fit within budget
+  if (totalChars > MAX_KNOWLEDGE_CHARS) {
+    let budget = MAX_KNOWLEDGE_CHARS;
+    working = working.map((d) => {
+      if (budget <= 0) return { ...d, content: '' };
+      if (d.content.length <= budget) {
+        budget -= d.content.length;
+        return d;
+      }
+      const truncated = { ...d, content: d.content.slice(0, budget) + '\n\n[Content truncated — exceeds context budget]' };
+      budget = 0;
+      return truncated;
+    }).filter((d) => d.content.length > 0);
+  }
+
+  return { pruned: working, truncated: true };
+}
+
+function formatKnowledgeSection(docs: ResolvedDocument[], truncated: boolean): string {
   if (docs.length === 0) return '';
 
   const sections: string[] = [
@@ -90,8 +188,16 @@ function formatKnowledgeSection(docs: ResolvedDocument[]): string {
     '## Reference Documents',
     '',
     'Use these documents to ground your responses. Cite the document name when referencing specific information.',
-    '',
   ];
+
+  if (truncated) {
+    sections.push(
+      '',
+      '> **Note:** Some documents were omitted or truncated to stay within context limits.',
+    );
+  }
+
+  sections.push('');
 
   for (const doc of docs) {
     const statusLabel = doc.status === 'fresh'
@@ -127,7 +233,6 @@ export async function* processAgentMessage(
     agent,
   );
 
-  let fullPrompt = systemPrompt;
   let knowledgeDocs: ResolvedDocument[] = [];
 
   try {
@@ -136,11 +241,15 @@ export async function* processAgentMessage(
     console.error('[Knowledge resolution error]', knowledgeErr);
   }
 
+  // Track explicitly referenced doc names so pruning never drops them
+  const referencedNames = new Set<string>();
+
   if (documentIds && documentIds.length > 0) {
     try {
       const referencedDocs = await resolveDocumentsByIds(documentIds);
       const existingNames = new Set(knowledgeDocs.map((d) => d.name));
       for (const doc of referencedDocs) {
+        referencedNames.add(doc.name);
         if (!existingNames.has(doc.name)) {
           knowledgeDocs.push(doc);
         }
@@ -150,12 +259,16 @@ export async function* processAgentMessage(
     }
   }
 
+  let fullPrompt = systemPrompt;
+
   if (knowledgeDocs.length > 0) {
-    fullPrompt += formatKnowledgeSection(knowledgeDocs);
+    const { pruned, truncated } = pruneKnowledgeDocs(knowledgeDocs, referencedNames);
+    fullPrompt += formatKnowledgeSection(pruned, truncated);
   }
 
   const supabase = createServiceRoleClient();
-  const history = await loadHistory(conversationId);
+  // Load history with channel-aware cap + token-budget trim
+  const history = await loadHistory(conversationId, channel);
 
   const { data: profile } = await supabase
     .from('profiles')

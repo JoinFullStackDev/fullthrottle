@@ -43,15 +43,17 @@ async function getActiveOverrides(agentId: string): Promise<OverrideRow[]> {
   return (data ?? []) as OverrideRow[];
 }
 
+/** Only fetch active (non-done) tasks, capped at 5, to keep the system prompt lean. */
 async function getAssignedTasks(agentId: string): Promise<TaskRow[]> {
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from('tasks')
-    .select('*')
+    .select('id, title, status, priority, project_tag, description')
     .eq('owner_type', 'agent')
     .eq('owner_id', agentId)
+    .neq('status', 'done')
     .order('updated_at', { ascending: false })
-    .limit(25);
+    .limit(5);
 
   if (error) return [];
   return (data ?? []) as TaskRow[];
@@ -251,51 +253,24 @@ export async function assembleSystemPrompt(
     sections.push('');
   }
 
-  // --- Assigned tasks ---
+  // --- Assigned tasks (active only, max 5) ---
+  // Done tasks are excluded — they add tokens with no actionable value.
   if (tasks.length > 0) {
-    sections.push('## Your Assigned Tasks', '');
-    sections.push('These are the tasks currently assigned to you. Be aware of them and reference them when relevant to the conversation.', '');
-
-    const activeTasks = tasks.filter((t) => t.status !== 'done');
-    const doneTasks = tasks.filter((t) => t.status === 'done');
-
-    if (activeTasks.length > 0) {
-      sections.push('### Active Tasks', '');
-      for (const task of activeTasks) {
-        sections.push(
-          `- **${task.title}** [${TASK_STATUS_LABELS[task.status] ?? task.status}] [${PRIORITY_LABELS[task.priority] ?? task.priority}]` +
-            (task.project_tag ? ` (${task.project_tag})` : '') +
-            (task.description ? `\n  ${task.description}` : ''),
-        );
-      }
-      sections.push('');
-    }
-
-    if (doneTasks.length > 0) {
-      sections.push(`### Recently Completed Tasks (${doneTasks.length})`, '');
-      for (const task of doneTasks.slice(0, 5)) {
-        sections.push(
-          `- ~~${task.title}~~` + (task.project_tag ? ` (${task.project_tag})` : ''),
-        );
-      }
-      sections.push('');
-    }
-  }
-
-  // --- Override metadata ---
-  if (overrides.length > 0) {
-    sections.push('## Active Persona Overrides', '');
-    sections.push('The following persona overrides are currently applied to your configuration:', '');
-    for (const override of overrides) {
-      const rulesCount = ((override.rules ?? []) as unknown as PersonaRule[]).filter((r) => r.enabled).length;
-      const skillsCount = ((override.skills ?? []) as unknown as PersonaSkill[]).filter((s) => s.enabled).length;
+    sections.push('## Your Active Tasks', '');
+    sections.push('Reference these only when directly relevant to the conversation.', '');
+    for (const task of tasks) {
       sections.push(
-        `- **${override.scope_type}** scope (${override.scope_id}) — v${override.version} — ${rulesCount} rules, ${skillsCount} skills, risk: ${override.risk_tolerance}` +
-          (override.approved_by ? ' [Approved]' : ' [Pending approval]'),
+        `- **${task.title}** [${TASK_STATUS_LABELS[task.status] ?? task.status}] [${PRIORITY_LABELS[task.priority] ?? task.priority}]` +
+          (task.project_tag ? ` (${task.project_tag})` : '') +
+          (task.description ? `\n  ${task.description}` : ''),
       );
     }
     sections.push('');
   }
+
+  // Note: persona override metadata (scope/version/approval status) is intentionally
+  // omitted from the system prompt. It's operational bookkeeping for the Control Center,
+  // not guidance the agent needs at inference time.
 
   return {
     systemPrompt: sections.join('\n'),
