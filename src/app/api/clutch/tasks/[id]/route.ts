@@ -67,3 +67,97 @@ export async function GET(
 
   return NextResponse.json({ task, relatedTasks });
 }
+
+const VALID_STATUSES = new Set(['backlog', 'ready', 'in_progress', 'waiting', 'review', 'done']);
+const VALID_PRIORITIES = new Set(['low', 'medium', 'high', 'critical']);
+const AGENT_SLUG_TO_ID: Record<string, string> = {
+  axel: 'a0000000-0000-0000-0000-000000000001',
+  riff: 'a0000000-0000-0000-0000-000000000002',
+  torque: 'a0000000-0000-0000-0000-000000000003',
+  clutch: 'a0000000-0000-0000-0000-000000000004',
+};
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const user = await authenticateClutchBearer(req);
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== 'object') {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  const svc = createServiceRoleClient();
+
+  // Verify task exists
+  const { data: existing, error: fetchErr } = await svc
+    .from('tasks')
+    .select('id, metadata')
+    .eq('id', id)
+    .single();
+
+  if (fetchErr || !existing) {
+    return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+  }
+
+  const updates: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (body.status !== undefined) {
+    if (!VALID_STATUSES.has(body.status)) {
+      return NextResponse.json(
+        { error: `Invalid status. Valid values: ${[...VALID_STATUSES].join(', ')}` },
+        { status: 400 },
+      );
+    }
+    updates.status = body.status;
+  }
+
+  if (body.priority !== undefined) {
+    if (!VALID_PRIORITIES.has(body.priority)) {
+      return NextResponse.json(
+        { error: `Invalid priority. Valid values: ${[...VALID_PRIORITIES].join(', ')}` },
+        { status: 400 },
+      );
+    }
+    updates.priority = body.priority;
+  }
+
+  if (body.title !== undefined) updates.title = String(body.title);
+  if (body.description !== undefined) updates.description = String(body.description);
+
+  // Support agent slug assignment (e.g. assignedAgent: "axel")
+  if (body.assignedAgent !== undefined) {
+    const agentId = AGENT_SLUG_TO_ID[body.assignedAgent.toLowerCase()] ?? body.assignedAgent;
+    updates.owner_id = agentId;
+    updates.owner_type = 'agent';
+  }
+
+  // Support metadata merge (e.g. store agent output)
+  if (body.metadata !== undefined && typeof body.metadata === 'object') {
+    const existingMeta = ((existing as Record<string, unknown>).metadata ?? {}) as Record<string, unknown>;
+    updates.metadata = { ...existingMeta, ...body.metadata };
+  }
+
+  const { data: updated, error: updateErr } = await svc
+    .from('tasks')
+    .update(updates as never)
+    .eq('id', id)
+    .select('id, title, status, priority, owner_id, owner_type, updated_at')
+    .single();
+
+  if (updateErr || !updated) {
+    return NextResponse.json(
+      { error: updateErr?.message ?? 'Failed to update task' },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json({ task: updated });
+}
