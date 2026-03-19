@@ -55,18 +55,37 @@ export interface ProjectMatch {
 
 /** File extensions worth reading for code/doc search */
 const READABLE_EXTENSIONS = new Set([
+  // TypeScript / JavaScript (frontend)
   '.ts', '.tsx', '.js', '.jsx',
+  // Java / Kotlin (backend)
+  '.java', '.kt', '.kts',
+  // Config / infra
+  '.yaml', '.yml', '.json', '.properties', '.toml', '.env.example.public',
+  // Docs
   '.md', '.mdx', '.txt',
-  '.json', '.yaml', '.yml',
-  '.css', '.scss',
-  '.html', '.env.example.public',
+  // Web
+  '.css', '.scss', '.html',
+  // Gradle build files (no extension match needed — handled by name below)
+]);
+
+/** Specific filenames to always include regardless of extension */
+const READABLE_FILENAMES = new Set([
+  'build.gradle', 'settings.gradle', 'build.gradle.kts', 'settings.gradle.kts',
+  'Dockerfile', 'docker-compose.yml', 'docker-compose.yaml',
+  'README', 'CHANGELOG',
 ]);
 
 /** Directories to always skip when traversing */
 const SKIP_DIRS = new Set([
   'node_modules', '.git', 'dist', 'build', 'out', '.next',
-  'coverage', '.turbo', '.cache', '__pycache__', '.DS_Store',
-  'ct-vrt', // visual regression snapshots — binary, not useful
+  'coverage', '.turbo', '.cache', '__pycache__',
+  'ct-vrt',           // visual regression snapshots — binary PNGs
+  'storybook-static', // built storybook — not useful
+  'json-test-results',// test output artifacts
+  'gradle',           // gradle wrapper binaries
+  '.gradle',
+  'e2e',              // e2e test snapshots/videos
+  '__snapshots__',
 ]);
 
 /** Max file size to read in full (2 MB) */
@@ -112,7 +131,7 @@ function collectFiles(dir: string, baseDir: string, results: ProjectFile[] = [])
       }
     } else if (entry.isFile()) {
       const ext = path.extname(entry.name).toLowerCase();
-      if (READABLE_EXTENSIONS.has(ext) || READABLE_EXTENSIONS.has(entry.name)) {
+      if (READABLE_EXTENSIONS.has(ext) || READABLE_FILENAMES.has(entry.name)) {
         let sizeBytes = 0;
         try {
           sizeBytes = fs.statSync(fullPath).size;
@@ -180,7 +199,20 @@ export function searchProjectFiles(
 
   for (const slug of slugs) {
     const projectDir = path.join(PROJECTS_BASE_DIR, slug);
-    const files = collectFiles(projectDir, PROJECTS_BASE_DIR);
+
+    // Walk frontend/ and backend/ separately so we never miss one due to
+    // the intermediate layer (slug → frontend/backend → repo-name → src)
+    const files: ProjectFile[] = [];
+    for (const tier of ['frontend', 'backend']) {
+      const tierDir = path.join(projectDir, tier);
+      if (fs.existsSync(tierDir)) {
+        collectFiles(tierDir, PROJECTS_BASE_DIR, files);
+      }
+    }
+    // Fallback: if neither frontend/ nor backend/ exists, walk root
+    if (files.length === 0) {
+      collectFiles(projectDir, PROJECTS_BASE_DIR, files);
+    }
 
     for (const file of files) {
       // Prioritise README and .md files — most likely to answer high-level questions
@@ -257,34 +289,83 @@ export function readProjectFile(relativePath: string): { content: string; trunca
 }
 
 /**
- * Get a structural overview of a project: top-level dirs and key files.
- * Useful as a first step before deep file search.
+ * Get a structural overview of a project.
+ *
+ * Projects follow the convention:
+ *   <slug>/frontend/<repo>/
+ *   <slug>/backend/<repo>/
+ *
+ * Returns repo locations, detected languages, and key files
+ * (READMEs, package.json, build.gradle, .plans docs).
  */
 export function getProjectStructure(projectSlug: string): {
   slug: string;
-  repoDirs: string[];
-  keyFiles: string[];
+  frontend: { repoDir: string; keyFiles: string[] } | null;
+  backend: { repoDir: string; language: 'java' | 'typescript' | 'unknown'; keyFiles: string[] } | null;
+  plansDocs: string[];
 } {
   const projectDir = path.join(PROJECTS_BASE_DIR, projectSlug);
 
-  let repoDirs: string[] = [];
-  try {
-    repoDirs = fs
-      .readdirSync(projectDir, { withFileTypes: true })
-      .filter((e) => e.isDirectory() && !SKIP_DIRS.has(e.name) && !e.name.startsWith('.'))
-      .map((e) => e.name);
-  } catch { /* no-op */ }
-
-  // Surface README and package.json from each repo dir as key context files
-  const keyFiles: string[] = [];
-  for (const repoDir of repoDirs) {
-    for (const candidate of ['README.md', 'package.json']) {
-      const p = path.join(projectDir, repoDir, candidate);
-      if (fs.existsSync(p)) {
-        keyFiles.push(path.relative(PROJECTS_BASE_DIR, p));
-      }
-    }
+  function firstSubdir(parentPath: string): string | null {
+    try {
+      const entries = fs.readdirSync(parentPath, { withFileTypes: true });
+      const dir = entries.find((e) => e.isDirectory() && !e.name.startsWith('.'));
+      return dir ? dir.name : null;
+    } catch { return null; }
   }
 
-  return { slug: projectSlug, repoDirs, keyFiles };
+  function findKeyFiles(repoPath: string): string[] {
+    const candidates = [
+      'README.md', 'package.json', 'build.gradle', 'build.gradle.kts',
+      'settings.gradle', 'settings.gradle.kts',
+    ];
+    const found: string[] = [];
+    for (const c of candidates) {
+      const p = path.join(repoPath, c);
+      if (fs.existsSync(p)) found.push(path.relative(PROJECTS_BASE_DIR, p));
+    }
+    return found;
+  }
+
+  function detectLanguage(repoPath: string): 'java' | 'typescript' | 'unknown' {
+    if (fs.existsSync(path.join(repoPath, 'build.gradle')) ||
+        fs.existsSync(path.join(repoPath, 'build.gradle.kts'))) return 'java';
+    if (fs.existsSync(path.join(repoPath, 'package.json'))) return 'typescript';
+    return 'unknown';
+  }
+
+  // frontend
+  const frontendBase = path.join(projectDir, 'frontend');
+  const frontendRepo = firstSubdir(frontendBase);
+  const frontendResult = frontendRepo
+    ? { repoDir: `${projectSlug}/frontend/${frontendRepo}`, keyFiles: findKeyFiles(path.join(frontendBase, frontendRepo)) }
+    : null;
+
+  // backend
+  const backendBase = path.join(projectDir, 'backend');
+  const backendRepo = firstSubdir(backendBase);
+  const backendRepoPath = backendRepo ? path.join(backendBase, backendRepo) : null;
+  const backendResult = backendRepo && backendRepoPath
+    ? {
+        repoDir: `${projectSlug}/backend/${backendRepo}`,
+        language: detectLanguage(backendRepoPath),
+        keyFiles: findKeyFiles(backendRepoPath),
+      }
+    : null;
+
+  // .plans docs (feature plans, notes) — often inside the frontend repo
+  const plansDocs: string[] = [];
+  if (frontendRepo) {
+    const plansDir = path.join(frontendBase, frontendRepo, '.plans');
+    try {
+      const planFiles = fs.readdirSync(plansDir, { withFileTypes: true });
+      for (const f of planFiles) {
+        if (f.isFile() && f.name.endsWith('.md')) {
+          plansDocs.push(path.relative(PROJECTS_BASE_DIR, path.join(plansDir, f.name)));
+        }
+      }
+    } catch { /* no .plans dir */ }
+  }
+
+  return { slug: projectSlug, frontend: frontendResult, backend: backendResult, plansDocs };
 }
