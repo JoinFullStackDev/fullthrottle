@@ -4,6 +4,11 @@ import { verifySlackSignature } from '@/lib/slack/verify';
 import { parseSlackMessage, type SlackEvent } from '@/lib/slack/event-parser';
 import { processAgentMessageSync } from '@/lib/runtime/message-pipeline';
 import { postSlackMessage } from '@/lib/slack/client';
+import {
+  requiresMergeApproval,
+  isAdminSlackUser,
+  formatAdminList,
+} from '@/lib/access/admin-guard';
 
 async function getSlackCredentials(): Promise<{
   signingSecret: string;
@@ -172,6 +177,32 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // --- Merge/deploy approval gate ---
+    // Any request that contains merge or deploy keywords requires the sender
+    // to be an admin. Non-admins get a clear escalation message instead.
+    if (requiresMergeApproval(parsed.text)) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name, role')
+        .eq('id', parsed.userId)
+        .single();
+
+      const displayName = profile?.name ?? parsed.userId;
+      const isAdmin = profile?.role === 'super_admin' || profile?.role === 'admin'
+        || isAdminSlackUser(displayName);
+
+      if (!isAdmin) {
+        await postSlackMessage({
+          botToken: slackConfig.botToken,
+          channel: parsed.channelId,
+          text: `🔒 *Merge/deploy approval required.*\n\nThis operation needs sign-off from an admin before I can proceed.\n\n*Admins:* ${formatAdminList()}\n\nOne of them can approve this request directly in this thread.`,
+          threadTs: parsed.threadTs,
+          username: agentName,
+        });
+        return NextResponse.json({ ok: true });
+      }
+    }
+
     const response = await processAgentMessageSync({
       agentId,
       conversationId,
