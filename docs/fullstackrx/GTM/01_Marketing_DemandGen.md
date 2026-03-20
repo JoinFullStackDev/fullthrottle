@@ -1,94 +1,131 @@
 # Marketing & Demand Generation
 
-**Status:** 🔴 TBD  
+**Status:** 🟡 Draft  
 **Last Updated:** 2026-03-20
 
 ---
 
 ## Open Questions
 
-- [ ] What is the primary marketing channel? (content, events, paid, referral, partnerships?)
-- [ ] Is there a marketing hire planned, or is this founder-led initially?
-- [ ] What is the marketing budget pre-launch?
-- [ ] Do we have a brand/website ready, or is that part of this workstream?
-- [ ] What conferences or trade shows do compounding pharmacies attend?
+- [ ] Which headline direction is approved? (see Section 2 — options drafted, awaiting Spencer feedback)
+- [ ] Website branding: site shows "CompoundRx" — is this the product brand name, or does it need to be updated to FullStackRx?
+- [ ] What associations are priority targets? (IACP, PCAB, others?)
+- [ ] What events / conferences are on the calendar pre-launch?
+- [ ] Who are the referral sources? (pharmacy consultants, ingredient suppliers, billing companies?)
+- [ ] Is a waitlist / lead capture live on fullstackrx.com before launch?
+- [ ] What does the content strategy look like? (blog, LinkedIn, email newsletter?)
 
 ---
 
 ## 1. Target Audience
 
-### Primary Buyer
-> 🔴 **TBD — Who is the decision maker?**  
-> Options: Independent pharmacy owner, Director of Operations, Head Pharmacist
+### Primary Buyer (KDM)
+- **Independent pharmacy owner** — the most common decision maker
+- At larger pharmacies, may need to work through **champions** (operations director, head pharmacist) to reach the owner
+- Champion strategy needed: identify internal advocates who can build the case upward
 
-### Influencers / Champions
-> 🔴 TBD — Who advocates internally? (staff pharmacist, billing manager, compliance officer?)
-
-### End Users
-- **Pharmacy staff** — managing orders, providers, products
+### End Users (Post-Sale)
+- **Pharmacy staff** — managing orders, providers, products, settings
 - **Providers (prescribers)** — submitting prescriptions, managing patients
 - **Patients** — viewing compounds, requesting refills, making payments
 
 ---
 
-## 2. Messaging & Positioning
+## 2. Headline Value Proposition
 
-### Headline Value Proposition
-> 🔴 **TBD — One sentence that captures the "why FullStackRx"**  
-> Draft (to refine): *"The all-in-one workflow platform built exclusively for compounding pharmacies — connecting your providers, patients, and operations in one HIPAA-compliant system."*
+**Core message:** FullStackRx streamlines the ordering of compound prescriptions between the pharmacy, provider, and patient.
 
-### Key Messages by Audience
+### Headline Options (Awaiting Spencer approval)
 
-**To Pharmacy Owners:**
-> 🔴 TBD — e.g., reduce admin overhead, eliminate manual prescription tracking, grow provider network
+**A — Value-focused:**
+> *"FullStackRx connects your pharmacy, providers, and patients in one place — so prescriptions move fast and nothing falls through the cracks."*
 
-**To Providers:**
-> 🔴 TBD — e.g., prescribe compounded medications without the phone tag, real-time prescription status, patient management in one place
+**B — Pain-focused:**
+> *"Stop managing compound prescriptions over phone, fax, and email. FullStackRx brings your pharmacy, providers, and patients into one streamlined workflow."*
 
-**To Patients:**
-> 🔴 TBD — e.g., simple onboarding, clear visibility into their compounds and refills
+**C — Outcome-focused:**
+> *"The platform built for compounding pharmacies — so you can spend less time chasing prescriptions and more time filling them."*
+
+**D — Bold / positioning:**
+> *"Compounding pharmacies run on relationships. FullStackRx makes the workflow match."*
+
+> 🔴 **Decision needed:** Which headline direction? Or new direction to explore?
 
 ---
 
 ## 3. Channels
 
+### Budget Context
+Self-funded from FullStack's revenue. Lean, high-ROI channels only. Founder-led marketing at launch; agency TBD as revenue grows.
+
 ### Pre-Launch (Now → May 28)
 
 | Channel | Goal | Owner | Status |
 |---------|------|-------|--------|
-| Landing page / waitlist | Capture early interest | TBD | 🔴 TBD |
-| LinkedIn outreach | Direct to pharmacy owners | TBD | 🔴 TBD |
-| Pharmacy association outreach | PCAB, IACP, ACVP | TBD | 🔴 TBD |
-| Design partner program | Lock in 3–5 beta pharmacies | Spencer | 🔴 TBD |
-| Email nurture | Warm leads to launch | TBD | 🔴 TBD |
+| Pharmacy associations (IACP, PCAB) | Brand awareness, credibility, early leads | Spencer | 🔴 TBD — identify contacts |
+| Referral network | Warm introductions to pharmacy owners | Spencer | 🔴 TBD — define referral sources |
+| Industry events / conferences | Face-to-face with KDMs | Spencer | 🔴 TBD — identify target events |
+| Direct LinkedIn outreach | Reach pharmacy owners directly | Spencer | 🔴 TBD |
+| Design partner program | 3–5 beta pharmacies before launch | Spencer | 🔴 TBD |
+| Website / lead capture (fullstackrx.com) | Capture interested pharmacies pre-launch | Spencer | 🟡 Site live, needs waitlist/CTA |
 
 ### Post-Launch
 
 | Channel | Goal | Owner | Status |
 |---------|------|-------|--------|
-| Content marketing (SEO) | Organic inbound | TBD | 🔴 TBD |
-| Paid ads (LinkedIn/Google) | Demand capture | TBD | 🔴 TBD |
-| Trade shows / events | IACP, compounding conferences | TBD | 🔴 TBD |
-| Referral program | Provider-to-pharmacy network effect | TBD | 🔴 TBD |
-| Case studies / testimonials | Social proof | TBD | 🔴 TBD |
+| Case studies / testimonials | Social proof for sales | TBD | 🔴 TBD |
+| Content marketing (SEO/blog) | Organic inbound from pharmacy owners | TBD / FullThrottle | 🔴 TBD |
+| Email nurture campaigns | Convert leads to demos | TBD / FullThrottle | 🔴 TBD |
+| Association partnerships | Co-marketing with IACP, PCAB | TBD | 🔴 TBD |
+| Referral / affiliate program | Provider-to-pharmacy network effect | TBD | 🔴 TBD |
 
 ---
 
-## 4. Content Strategy
+## 4. Association Strategy
 
-> 🔴 TBD
+> Target associations for outreach, sponsorship, and credibility
 
-Topics to consider:
-- HIPAA compliance for compounding pharmacies
-- Digitizing the prescription workflow
-- Growing a provider network
-- Patient retention for compound prescriptions
+| Association | Relevance | Action |
+|-------------|-----------|--------|
+| IACP (Int'l Academy of Compounding Pharmacists) | Premier org for independent compounding pharmacies — conferences, member directory, education | Priority: identify contacts, explore sponsorship or member offer |
+| PCAB (Pharmacy Compounding Accreditation Board) | Accreditation body — PCAB-accredited pharmacies are the most quality-focused buyers | Explore co-marketing or accreditation badge/integration |
+| NABP | Broader pharmacy regulatory body | Secondary |
+| APhA | National pharmacist association | Secondary |
 
 ---
 
-## 5. Launch Campaign
+## 5. Events Strategy
 
-> 🔴 TBD — Define the launch moment: press release, launch event, LinkedIn campaign, Product Hunt?
+> 🔴 TBD — Identify key compounding pharmacy conferences in 2026
+
+Research needed:
+- IACP annual conference (International Journal of Pharmaceutical Compounding)
+- Compounding Pharmacy Summit
+- Regional pharmacy association events
+- Functional medicine / integrative health conferences (where prescribing providers attend)
+
+---
+
+## 6. FullThrottle as a Marketing Engine (Future)
+
+Spencer has expressed interest in leveraging FullThrottle's AI capabilities for marketing. Potential applications:
+
+- **Content creation:** Blog posts, LinkedIn content, email campaigns
+- **Competitive research:** Ongoing monitoring of competitor moves, pricing, messaging
+- **Lead research:** Enrich pharmacy prospect lists with public data
+- **Campaign drafting:** Ad copy, outreach sequences, association pitch decks
+- **Analytics:** Track what content/channels drive pipeline
+
+> 🔴 **To explore:** Define what a FullThrottle Marketing agent would look like — scope, guardrails, approval workflow before anything goes live
+
+---
+
+## 7. Website (fullstackrx.com)
+
+- Site is live
+- Current title shows "CompoundRx — HIPAA-Compliant Prescription Management"
+- **⚠️ Branding flag:** Is the product called CompoundRx or FullStackRx? Needs clarification
+- Pre-launch priority: add waitlist / demo request CTA to capture inbound interest
 
 ---
 
