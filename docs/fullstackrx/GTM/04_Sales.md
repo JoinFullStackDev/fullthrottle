@@ -211,4 +211,62 @@ FullStackRx revenue has two components:
 
 ---
 
+## 11. Sales Team Compensation Structure
+
+### Account Executives (AEs)
+
+50/50 base/commission split at all levels.
+
+| Level | Base | OTE | At-Target Commission | Top Performer |
+|-------|------|-----|---------------------|--------------|
+| Jr AE | $65k | $130k | $65k | $150k+ |
+| AE | $90k | $180k | $90k | $200k+ |
+| Sr AE | $105k | $210k | $105k | $250k+ |
+
+- Jr → AE → Sr AE promotions based on sustained quota attainment
+- Commission structure: 10% platform ARR at close + 10% transaction revenue for 6 months trailing (see Section 5)
+
+### SDRs
+
+Commission tied to **qualified demos set that convert to pipeline** — not closed revenue. Keeps focus on quality over quantity.
+
+| Level | Base | OTE | Commission Target | Cap |
+|-------|------|-----|-----------------|-----|
+| SDR | $40k | $80k | $40k | $80k OTE max |
+| Sr SDR | $45k | $90k | $45k | $90k OTE max |
+
+- OTE caps are intentional — promotion to Jr AE is the incentive for top SDR performance
+- Gap between Sr SDR ceiling ($90k) and Jr AE floor ($130k) is the promotion incentive
+
+### Sales Leadership
+
+| Role | Base | OTE | Split | Quota |
+|------|------|-----|-------|-------|
+| Sales Manager | $120k | $180k | 67/33 | Sum of direct reports' quotas |
+| VP of Sales | $150k | $220k | 68/32 | Sum of all AE quotas |
+
+- Full quota attainment paid at **80% of team quota** — rewards building a strong team
+- Escalating bonus accelerator above 100% team attainment
+- No individual deal commission — compensated on team revenue performance
+
+### CRO (Future Hire — ~2027+)
+
+Not needed until revenue scale justifies it. Spencer is de facto CRO until then.
+
+| Component | Range | Notes |
+|-----------|-------|-------|
+| Base | $160–200k | Senior executive market rate |
+| OTE | $280–350k | 60/40 split |
+| Commission | 0.5–1.5% of total company ARR | Company-level, not individual deals |
+| Equity | 0.5–2% | Critical at startup stage |
+| Full attainment | At 100% company revenue target | Partial at 80%, accelerator above 110% |
+
+### Founder / CEO Compensation
+
+- **No sales commission** — equity and distributions are the upside
+- **Base salary:** $120–150k (market-rate, sustainable)
+- **Optional performance bonus:** ~10% of salary tied to hitting company EOY ARR target
+
+---
+
 ## Notes
