@@ -1,76 +1,89 @@
 # Sales
 
-**Status:** 🔴 TBD  
+**Status:** 🟡 Draft  
 **Last Updated:** 2026-03-20
 
 ---
 
 ## Open Questions
 
-- [ ] Is sales founder-led at launch, or is there a sales hire planned?
-- [ ] What is the expected sales cycle length? (days, weeks, months?)
-- [ ] Will there be a free trial or demo-first motion?
-- [ ] What CRM will be used? (HubSpot, Salesforce, other?)
-- [ ] What does the qualification criteria look like? (pharmacy size, specialty, tech readiness?)
-- [ ] Is there a defined ICP (Ideal Customer Profile)?
+- [ ] Disqualification criteria — what makes a pharmacy a pass? (Still being discovered)
+- [ ] CRM selection — HubSpot vs. Salesforce (budget/scale dependent)
+- [ ] SDR/AE team hiring timeline — when does first sales hire happen post-launch?
 - [ ] Commission tracking dashboard — flagged as product requirement for Axel (per-pharmacy Rx volume → auto-calculated monthly payouts)
 - [ ] Revisit comp structure after first deals close — adjust if closing is too easy or reps are over/under-compensated
+- [ ] Third beta pharmacy — Hillcrest and Mountainview confirmed, third TBD
 
 ---
 
 ## 1. Sales Motion
 
-> 🔴 **TBD — Define the primary sales motion**
+**Demo-led → Pilot → Full rollout**
 
-Options:
-- **Product-Led Growth (PLG):** Self-serve signup, freemium or trial → convert
-- **Sales-Led:** Demo-first, consultative sale, contract-based
-- **Hybrid:** PLG for smaller pharmacies, sales-assisted for larger / multi-location
+1. Live product demonstration (Spencer-led at launch)
+2. Invite a subset of the pharmacy's providers to participate
+3. Validate workflow, gather feedback
+4. Scale to all providers
+5. Full go-live
 
-**Hypothesis:** Given HIPAA requirements, BAA execution, and workflow complexity, this is likely a **sales-assisted** motion — demo → pilot → contract.
-
----
-
-## 2. Ideal Customer Profile (ICP)
-
-> 🔴 TBD
-
-| Attribute | Hypothesis | Confirmed? |
-|-----------|-----------|------------|
-| Pharmacy type | Independent compounding pharmacy | TBD |
-| Specialty focus | Functional medicine, HRT, peptides, anti-aging | TBD (based on product catalog) |
-| Size | 1–3 locations, 2–20 staff | TBD |
-| Geography | US only (HIPAA jurisdiction) | Likely yes |
-| Tech maturity | Currently using manual or legacy systems | TBD |
-| Provider network | Has active provider relationships / wants to grow | TBD |
+This is a **sales-assisted motion** — not self-serve. HIPAA requirements, BAA execution, and workflow complexity make a consultative approach the right call.
 
 ---
 
-## 3. Sales Process
+## 2. Sales Team Structure
 
-> 🔴 TBD — Define stages and exit criteria
+### Phase 1: Founder-Led (Launch → ~90 days post first clients)
+- Spencer runs all sales
+- Goal: close first 2–3 paying customers, learn the sales cycle firsthand
+- Key output: document what works, build the playbook for future reps
 
-| Stage | Description | Exit Criteria |
-|-------|-------------|---------------|
-| Prospect | Identified pharmacy owner / decision maker | Contact info obtained |
-| Outreach | Initial contact via LinkedIn, email, referral | Response / meeting booked |
-| Discovery | Understand current workflow, pain points, team size | Qualified / disqualified |
-| Demo | Live product walkthrough | Positive signal, champion identified |
-| Pilot / Trial | Limited access or sandbox | Success criteria defined |
-| Proposal | Pricing + agreement sent | Decision maker engaged |
-| Close | Contract + BAA signed | Payment collected |
-| Handoff | Transferred to Onboarding | Kickoff scheduled |
+### Phase 2: First Sales Hire (~90 days post-launch)
+- Bring on first Account Executive
+- Spencer transitions to player-coach, then full coach
+
+### Phase 3: SDR + AE Team (Scale)
+- **SDRs** — source and qualify leads, set demos
+- **Account Executives** — run demos, manage pipeline, close deals
+- SDRs feed AEs; AEs own the full cycle from demo to close
+- Handoff to Onboarding on signed deal
 
 ---
 
-## 4. Sales Collateral Needed
+## 3. Ideal Customer Profile (ICP)
 
-- [ ] 1-page product overview / leave-behind
-- [ ] Demo script / talk track
-- [ ] ROI calculator (time saved, error reduction, provider network growth)
-- [ ] Case studies (post-launch)
-- [ ] Competitive battle cards
-- [ ] Objection handling guide
+| Attribute | Definition |
+|-----------|-----------|
+| Pharmacy type | Compounding pharmacy (503A) |
+| Size | Independent / mom-and-pop — NOT enterprise at launch |
+| Volume | Any tier (Low/Mid/High) — no volume floor initially |
+| Geography | US only (HIPAA jurisdiction) |
+| Tech maturity | Currently on manual workflow (phone/fax/spreadsheet) — most motivated to switch |
+| Provider network | Has active prescribing providers, wants to grow relationships |
+
+### Disqualification Criteria
+> 🔴 Still being discovered — update as patterns emerge from early sales
+
+Known disqualifiers:
+- Enterprise / multi-chain pharmacy groups (not the initial target)
+- Non-compounding retail pharmacy
+- Outside the US
+
+---
+
+## 4. Sales Process
+
+| Stage | Description | Target Duration |
+|-------|-------------|----------------|
+| **Prospect** | Identify pharmacy owner / decision maker | — |
+| **Outreach** | Warm intro (via referral/association) or cold LinkedIn/email | — |
+| **Discovery** | Understand current workflow, pain points, volume, provider count | Call 1 |
+| **Demo** | Live product walkthrough tailored to their workflow | Call 2 |
+| **Pilot** | Invite subset of providers to participate, validate workflow | 1–2 weeks |
+| **Proposal** | Pricing + agreement sent, tier determined by volume | — |
+| **Close** | Contract + BAA signed, payment method collected | — |
+| **Handoff** | Warm handoff to Onboarding team, kickoff scheduled | Day of close |
+
+**Estimated sales cycle:** ~30 days (hypothesis — validate with early deals)
 
 ---
 
@@ -80,23 +93,29 @@ Options:
 
 ### Revenue Model Context
 FullStackRx revenue has two components:
-- **Platform fee:** $299–$750/location/month (based on transaction volume)
+- **Platform fee:** $299 / $499 / $750 per location/month (based on Rx volume tier)
 - **Transaction fee:** $0.75–$2.00 per prescription processed (negotiated by rep — provider or patient pays)
 
-The transaction fee dominates total revenue at volume, so comp must reflect both streams.
+### Volume Tiers
+| Tier | Rx/mo Volume | Platform Fee |
+|------|-------------|-------------|
+| Low | < 4,000 Rx/mo | $299 |
+| Mid | 4,000 – 8,000 Rx/mo | $499 |
+| High | > 8,000 Rx/mo | $750 |
 
-### Compensation Structure: Option 1 (Approved)
+### Compensation Structure (Approved)
 
 | Component | Rate | Timing | Notes |
 |-----------|------|--------|-------|
-| **Close bonus** | 10% of platform ACV (12 months) | Paid at close | Immediate cash — keeps reps paid from day one |
-| **Trailing commission** | 10% of transaction revenue | Monthly, for first 6 months | Incentivizes negotiating higher per-Rx fee and closing high-volume pharmacies |
+| **Close bonus** | 10% of platform ARR | Paid at close | Immediate cash — rep gets paid day of close |
+| **Trailing commission** | 10% of transaction revenue | Monthly, for first 6 months | Incentivizes negotiating higher per-Rx fee and closing high-volume accounts |
 
-### Why This Works
-- Reps get paid immediately at close — no waiting 6 months for first check
-- Trailing incentive motivates reps to negotiate the per-Rx fee up (more for them AND more for us)
-- 6-month trailing window keeps it sustainable for margins
-- Blended effective rate: ~7–8% of year-1 total revenue per deal
+### Close Bonus by Tier
+| Tier | Platform Fee | ARR | Close Bonus |
+|------|-------------|-----|------------|
+| Low | $299/mo | $3,588 | **$359** |
+| Mid | $499/mo | $5,988 | **$599** |
+| High | $750/mo | $9,000 | **$900** |
 
 ### Example Payouts By Tier
 
@@ -121,15 +140,6 @@ The transaction fee dominates total revenue at volume, so comp must reflect both
 | $0.75/Rx | $7,500 | $900 | $4,500 | **$5,400** |
 | $1.00/Rx | $10,000 | $900 | $6,000 | **$6,900** |
 
-### Platform ACV Calculation
-- **Close bonus is based on ARR (annual), not MRR**
-- **Platform fee tiers:** $299 / $499 / $750 per location/month
-- **ACV** = monthly platform fee × 12 months
-- Close bonus examples by tier:
-  - $299/mo → ACV $3,588 → **close bonus $359**
-  - $499/mo → ACV $5,988 → **close bonus $599**
-  - $750/mo → ACV $9,000 → **close bonus $900**
-
 ### Guardrails
 - Comp structure to be reviewed after first 5–10 deals close
 - If closing rate is high and deal complexity is low, consider reducing close bonus % or capping payout
@@ -138,23 +148,51 @@ The transaction fee dominates total revenue at volume, so comp must reflect both
 
 ---
 
-## 6. Sales Targets
+## 6. Beta / Design Partners
 
-> 🔴 TBD
+> These pharmacies have agreed to be early adopters — critical for product validation and first case studies
 
-| Period | Goal | Notes |
-|--------|------|-------|
-| Pre-launch | 3–5 design partners signed | Pilot / beta program |
-| Month 1 (June) | TBD paying customers | — |
-| Month 3 (August) | TBD | — |
-| Month 6 (November) | TBD | — |
-| Year 1 | TBD ARR | — |
+| Pharmacy | Status | Notes |
+|----------|--------|-------|
+| Hillcrest | ✅ Confirmed | Beta partner |
+| Mountainview | ✅ Confirmed | Beta partner |
+| TBD | 🟡 Maybe | Third potential beta pharmacy |
+
+> Beta partners should be onboarded before launch (May 28) to validate the full workflow end-to-end.
 
 ---
 
-## 6. CRM & Pipeline Management
+## 7. Sales Collateral Needed
 
-> 🔴 TBD — Tool selection and setup
+> Build before launch
+
+- [ ] 1-page product overview / leave-behind
+- [ ] Demo script / talk track (tailored to compounding pharmacy pain points)
+- [ ] ROI one-pager (time saved on Rx intake, error reduction, provider network growth)
+- [ ] Objection handling guide
+- [ ] Competitive battle card (vs. AutopilotRX, vs. status quo)
+- [ ] Case studies (post-launch — start with Hillcrest and Mountainview)
+
+---
+
+## 8. CRM & Pipeline Management
+
+- **Current:** Homegrown system
+- **Future:** HubSpot or Salesforce (decision based on budget and scale velocity)
+- **Minimum viable pipeline tracking:** Lead → Discovery → Demo → Pilot → Proposal → Close → Handoff
+
+---
+
+## 9. Sales Targets
+
+> 🔴 TBD — Set after beta results and first sales cycle data
+
+| Period | Goal | Notes |
+|--------|------|-------|
+| Pre-launch (now → May 28) | 2–3 beta pharmacies live | Hillcrest + Mountainview + TBD |
+| Month 1–3 post-launch | TBD paying customers | Founder-led |
+| Month 3–6 | First sales hire | Transition to AE model |
+| Year 1 | TBD ARR | Set after first quarter of data |
 
 ---
 
