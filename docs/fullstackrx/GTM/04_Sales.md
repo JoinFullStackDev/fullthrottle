@@ -98,13 +98,28 @@ The transaction fee dominates total revenue at volume, so comp must reflect both
 - 6-month trailing window keeps it sustainable for margins
 - Blended effective rate: ~7–8% of year-1 total revenue per deal
 
-### Example Payout (Medium Pharmacy — 200 Rx/mo)
+### Example Payouts By Tier
 
-| Trans. Fee Negotiated | Monthly Trans. Rev. | Close Bonus (10% ACV, $300/mo) | Trailing (10% x 6mo) | Total Rep Comp |
-|----------------------|--------------------|-----------------------------|----------------------|---------------|
-| $0.75/Rx | $150/mo | $360 | $90 | **$450** |
-| $1.50/Rx | $300/mo | $360 | $180 | **$540** |
-| $2.00/Rx | $400/mo | $360 | $240 | **$600** |
+**Low-tier pharmacy — ~2,000 Rx/mo, $299 platform fee:**
+
+| Trans. Fee | Monthly Trans. Rev. | Close Bonus (10% ARR) | Trailing (10% x 6mo) | Total Rep Comp |
+|-----------|--------------------|-----------------------|----------------------|---------------|
+| $1.50/Rx | $3,000 | $359 | $1,800 | **$2,159** |
+| $2.00/Rx | $4,000 | $359 | $2,400 | **$2,759** |
+
+**Mid-tier pharmacy — ~6,000 Rx/mo, $499 platform fee:**
+
+| Trans. Fee | Monthly Trans. Rev. | Close Bonus (10% ARR) | Trailing (10% x 6mo) | Total Rep Comp |
+|-----------|--------------------|-----------------------|----------------------|---------------|
+| $1.25/Rx | $7,500 | $599 | $4,500 | **$5,099** |
+| $1.50/Rx | $9,000 | $599 | $5,400 | **$5,999** |
+
+**High-tier pharmacy — ~10,000 Rx/mo, $750 platform fee:**
+
+| Trans. Fee | Monthly Trans. Rev. | Close Bonus (10% ARR) | Trailing (10% x 6mo) | Total Rep Comp |
+|-----------|--------------------|-----------------------|----------------------|---------------|
+| $0.75/Rx | $7,500 | $900 | $4,500 | **$5,400** |
+| $1.00/Rx | $10,000 | $900 | $6,000 | **$6,900** |
 
 ### Platform ACV Calculation
 - **Close bonus is based on ARR (annual), not MRR**

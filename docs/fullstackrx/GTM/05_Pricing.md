@@ -7,7 +7,7 @@
 
 ## Open Questions
 
-- [ ] What are the exact volume thresholds that determine the $299 vs. $750 platform fee? (e.g., <100 Rx/mo = $299, 100–300 = $499, 300+ = $750?)
+- [x] Volume thresholds set: Low <4,000 / Mid 4,000–8,000 / High >8,000 Rx/mo
 - [ ] Will there be annual vs. monthly billing options? (incentivize annual with a discount?)
 - [ ] Are there implementation / setup fees?
 - [ ] Will there be a free trial or demo sandbox?
@@ -22,8 +22,13 @@ FullStackRx generates revenue through two streams:
 ### Stream 1: Platform Fee
 - **Per location, per month**
 - **3 tiers:** $299 / $499 / $750 per location/month
-- Scaled by transaction volume (higher volume = higher tier)
-- Volume thresholds TBD — see Open Questions
+- Scaled by monthly prescription volume:
+
+| Tier | Volume | Monthly Fee |
+|------|--------|------------|
+| Low | < 4,000 Rx/mo | $299 |
+| Mid | 4,000 – 8,000 Rx/mo | $499 |
+| High | > 8,000 Rx/mo | $750 |
 
 ### Stream 2: Transaction Fee
 - **Per prescription processed through the platform**
@@ -34,15 +39,13 @@ FullStackRx generates revenue through two streams:
 
 ### Combined Revenue Example
 
-| Pharmacy Size | Rx/mo | Platform Fee | Trans. Fee | Monthly Revenue | Annual Revenue |
-|--------------|-------|-------------|------------|----------------|---------------|
-| Small | 75 | $299 | $0.75 = $56 | **$355** | **$4,260** |
-| Medium | 200 | $499 | $1.50 = $300 | **$799** | **$9,588** |
-| Large | 400 | $750 | $2.00 = $800 | **$1,550** | **$18,600** |
+| Tier | Avg Rx/mo | Platform Fee | Trans. Fee (avg) | Trans. Revenue | Monthly Total | Annual Total |
+|------|-----------|-------------|-----------------|----------------|--------------|-------------|
+| Low | 2,000 | $299 | $2.00 | $4,000 | **$4,299** | **$51,588** |
+| Mid | 6,000 | $499 | $1.50 | $9,000 | **$9,499** | **$113,988** |
+| High | 10,000 | $750 | $0.75 | $7,500 | **$8,250** | **$99,000** |
 
-> 💡 **Key insight:** At volume, transaction fees generate more revenue than the platform fee. A large pharmacy ($750 tier, 400 Rx/mo at $2.00) generates $1,550/mo — the platform fee is only 48% of total revenue. Transaction revenue is the real growth engine. Closing high-volume pharmacies at higher per-Rx rates is disproportionately valuable, which is why sales comp is structured to reward exactly that.
-
-> Note: Transaction fee volume heavily outweighs platform fee at scale — transaction revenue is the real growth engine.
+> 💡 **Key insight:** Transaction fees completely dwarf the platform fee at every tier. A Low-tier pharmacy at 2,000 Rx/mo generates $4,299/mo — the platform fee is only 7% of that. Mid-tier is the revenue sweet spot: high enough volume to generate massive transaction revenue while still paying a higher per-Rx rate than High-tier. The platform fee is essentially a commitment signal — transaction revenue is the real business. Note that smaller pharmacies pay a higher per-Rx rate ($2.00) than large ones ($0.75), so volume discounting is baked in while still protecting margins.
 
 ---
 
