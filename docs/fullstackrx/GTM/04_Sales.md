@@ -10,7 +10,7 @@
 - [ ] Disqualification criteria — what makes a pharmacy a pass? (Still being discovered)
 - [ ] CRM selection — HubSpot vs. Salesforce (budget/scale dependent)
 - [ ] SDR/AE team hiring timeline — when does first sales hire happen post-launch?
-- [ ] Commission tracking dashboard — flagged as product requirement for Axel (per-pharmacy Rx volume → auto-calculated monthly payouts)
+- [ ] Commission tracking dashboard — flagged for Axel, build before first sales rep is hired (not needed for founder-led phase)
 - [ ] Revisit comp structure after first deals close — adjust if closing is too easy or reps are over/under-compensated
 - [ ] Third beta pharmacy — Hillcrest and Mountainview confirmed, third TBD
 
@@ -185,14 +185,29 @@ FullStackRx revenue has two components:
 
 ## 9. Sales Targets
 
-> 🔴 TBD — Set after beta results and first sales cycle data
-
 | Period | Goal | Notes |
 |--------|------|-------|
 | Pre-launch (now → May 28) | 2–3 beta pharmacies live | Hillcrest + Mountainview + TBD |
-| Month 1–3 post-launch | TBD paying customers | Founder-led |
-| Month 3–6 | First sales hire | Transition to AE model |
-| Year 1 | TBD ARR | Set after first quarter of data |
+| Months 1–3 post-launch (June–August) | 3 pharmacies running and stable | Validate workflow, build case studies |
+| End of Year 1 (December 2026) | 5–10 total paying pharmacies | 2–7 new adds on top of the 3 betas |
+| ~90 days post first clients | First sales hire | Transition from founder-led |
+
+---
+
+## 10. Sales Collateral Action Items
+
+> Build before or shortly after launch
+
+| Item | Description | Priority | Status |
+|------|-------------|----------|--------|
+| **1-page product overview** | Leave-behind for pharmacy owners — what FullStackRx does, key benefits, pricing tiers | 🔴 High | Not started |
+| **Demo script / talk track** | Step-by-step guide for running the demo, tailored to compounding pharmacy pain points (Rx intake, provider workflow, patient tracking, payments) | 🔴 High | Not started |
+| **Objection handling guide** | Responses to top objections: "We already use PioneerRx", "We're happy with our current process", "We can't afford it", "What about HIPAA?" | 🔴 High | Not started |
+| **Competitive battle card** | Quick-reference vs. AutopilotRX and status quo (phone/fax/spreadsheet) | 🟡 Medium | Not started |
+| **ROI one-pager** | Time saved on Rx intake, reduced errors, provider network growth — make the value tangible | 🟡 Medium | Not started |
+| **Case studies** | Hillcrest and Mountainview stories post-launch | 🟡 Medium | Post-launch |
+
+> 💡 **Note:** Demo script is the most critical pre-launch asset. Spencer is running all early sales — a tight, repeatable demo script is the difference between a consistent pitch and reinventing it every call.
 
 ---
 
