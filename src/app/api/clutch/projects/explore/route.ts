@@ -15,6 +15,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateClutchBearer } from '../../_lib/auth';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 import {
   listProjects,
   searchProjectFiles,
@@ -22,6 +23,37 @@ import {
   getProjectStructure,
   PROJECTS_BASE_DIR,
 } from '@/lib/projects/explorer';
+
+/**
+ * Max characters of file content that may be returned in a single read.
+ * Agents can read files for reasoning but should not dump walls of raw code
+ * into Slack responses. If a file exceeds this, it's truncated with a note.
+ * ~6k tokens at 4 chars/token — enough to understand a file, not paste it wholesale.
+ */
+const MAX_RESPONSE_CHARS = 24_000;
+
+/** File types that may be returned in full — docs and configs only, not source code. */
+const FULL_CONTENT_EXTENSIONS = new Set(['.md', '.mdx', '.txt', '.yaml', '.yml', '.json', '.properties']);
+
+async function auditProjectRead(
+  userId: string,
+  filePath: string,
+  action: 'read' | 'search' | 'structure',
+) {
+  try {
+    const svc = createServiceRoleClient();
+    await svc.from('audit_logs').insert({
+      actor_id: userId,
+      action_type: `project_explore_${action}`,
+      entity_type: 'ProjectFile',
+      entity_id: filePath,
+      after_state: { path: filePath, action },
+      reason: `Clutch project explorer: ${action}`,
+    } as never);
+  } catch {
+    // Audit failure is non-blocking — never let it break the response
+  }
+}
 
 const STOPWORDS = new Set([
   'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
@@ -85,6 +117,8 @@ export async function POST(req: NextRequest) {
 
       const matches = searchProjectFiles(terms, projectSlug, limit);
 
+      await auditProjectRead(user.id, projectSlug ?? 'all', 'search');
+
       return NextResponse.json({
         results: matches.map((m) => ({
           path: m.file.relativePath,
@@ -113,11 +147,29 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      await auditProjectRead(user.id, body.path, 'read');
+
+      // Apply response size guardrail.
+      // Source code files (.ts, .java, etc.) are capped at MAX_RESPONSE_CHARS so
+      // agents can reason about them without dumping raw code walls into Slack.
+      // Doc/config files (.md, .yaml, etc.) are returned in full up to the cap.
+      const ext = body.path.split('.').pop()?.toLowerCase() ?? '';
+      const isDocFile = FULL_CONTENT_EXTENSIONS.has(`.${ext}`);
+      let content = result.content;
+      let responseTruncated = result.truncated;
+
+      if (content.length > MAX_RESPONSE_CHARS) {
+        content = content.slice(0, MAX_RESPONSE_CHARS) +
+          `\n\n[Content truncated at ${MAX_RESPONSE_CHARS} chars. Use offset/search for more.]`;
+        responseTruncated = true;
+      }
+
       return NextResponse.json({
         path: body.path,
-        content: result.content,
-        truncated: result.truncated,
-        note: 'READ-ONLY. Do not attempt to modify or push this file.',
+        content,
+        truncated: responseTruncated,
+        isDocFile,
+        note: 'READ-ONLY. Use content for reasoning and recommendations only — do not paste large code blocks into Slack responses.',
       });
     }
 
@@ -129,6 +181,8 @@ export async function POST(req: NextRequest) {
 
       const slug: string = body.project ?? body.projectSlug;
       const structure = getProjectStructure(slug);
+
+      await auditProjectRead(user.id, slug, 'structure');
 
       return NextResponse.json({
         ...structure,
