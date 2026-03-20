@@ -18,11 +18,11 @@ FullStackRx is a compounding pharmacy workflow platform built to connect pharmac
 
 | # | Category | File | Status |
 |---|----------|------|--------|
-| 1 | [Marketing & Demand Gen](./01_Marketing_DemandGen.md) | `01_Marketing_DemandGen.md` | 🔴 TBD |
-| 2 | [Competition](./02_Competition.md) | `02_Competition.md` | 🔴 TBD |
-| 3 | [Partnerships](./03_Partnerships.md) | `03_Partnerships.md` | 🔴 TBD |
-| 4 | [Sales](./04_Sales.md) | `04_Sales.md` | 🔴 TBD |
-| 5 | [Pricing](./05_Pricing.md) | `05_Pricing.md` | 🔴 TBD |
+| 1 | [Marketing & Demand Gen](./01_Marketing_DemandGen.md) | `01_Marketing_DemandGen.md` | 🟢 Complete |
+| 2 | [Competition](./02_Competition.md) | `02_Competition.md` | 🟢 Complete |
+| 3 | [Partnerships](./03_Partnerships.md) | `03_Partnerships.md` | 🟢 Complete |
+| 4 | [Sales](./04_Sales.md) | `04_Sales.md` | 🟢 Complete |
+| 5 | [Pricing](./05_Pricing.md) | `05_Pricing.md` | 🟢 Complete |
 | 6 | [Agreements](./06_Agreements.md) | `06_Agreements.md` | 🔴 TBD |
 | 7 | [Onboarding](./07_Onboarding.md) | `07_Onboarding.md` | 🟡 Draft |
 | 8 | [Account Management](./08_Account_Management.md) | `08_Account_Management.md` | 🔴 TBD |
