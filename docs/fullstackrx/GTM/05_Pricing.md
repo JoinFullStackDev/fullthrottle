@@ -21,7 +21,7 @@ FullStackRx generates revenue through two streams:
 
 ### Stream 1: Platform Fee
 - **Per location, per month**
-- Range: **$299 – $750/location/month**
+- **3 tiers:** $299 / $499 / $750 per location/month
 - Scaled by transaction volume (higher volume = higher tier)
 - Volume thresholds TBD — see Open Questions
 
@@ -39,6 +39,8 @@ FullStackRx generates revenue through two streams:
 | Small | 75 | $299 | $0.75 = $56 | **$355** | **$4,260** |
 | Medium | 200 | $499 | $1.50 = $300 | **$799** | **$9,588** |
 | Large | 400 | $750 | $2.00 = $800 | **$1,550** | **$18,600** |
+
+> 💡 **Key insight:** At volume, transaction fees generate more revenue than the platform fee. A large pharmacy ($750 tier, 400 Rx/mo at $2.00) generates $1,550/mo — the platform fee is only 48% of total revenue. Transaction revenue is the real growth engine. Closing high-volume pharmacies at higher per-Rx rates is disproportionately valuable, which is why sales comp is structured to reward exactly that.
 
 > Note: Transaction fee volume heavily outweighs platform fee at scale — transaction revenue is the real growth engine.
 

@@ -107,9 +107,13 @@ The transaction fee dominates total revenue at volume, so comp must reflect both
 | $2.00/Rx | $400/mo | $360 | $240 | **$600** |
 
 ### Platform ACV Calculation
-- **Platform fee:** $299–$750/location/month
-- **ACV** = monthly fee × 12 months
-- Example: $400/mo × 12 = $4,800 ACV → close bonus = $480
+- **Close bonus is based on ARR (annual), not MRR**
+- **Platform fee tiers:** $299 / $499 / $750 per location/month
+- **ACV** = monthly platform fee × 12 months
+- Close bonus examples by tier:
+  - $299/mo → ACV $3,588 → **close bonus $359**
+  - $499/mo → ACV $5,988 → **close bonus $599**
+  - $750/mo → ACV $9,000 → **close bonus $900**
 
 ### Guardrails
 - Comp structure to be reviewed after first 5–10 deals close
