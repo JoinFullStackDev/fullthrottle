@@ -139,7 +139,7 @@ The BAA must comply with **45 CFR §164.504(e)** and cover:
 - Stripe integration exists but less native than PandaDoc
 - Also HIPAA-compliant
 
-> 🔴 **Decision needed:** PandaDoc vs. DocuSign. Recommendation is PandaDoc given Stripe integration and template flexibility.
+> ✅ **Decision:** PandaDoc — selected for native Stripe integration and template flexibility.
 
 ---
 
