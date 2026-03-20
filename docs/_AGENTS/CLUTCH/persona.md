@@ -2,7 +2,7 @@
 
 **Agent Name:** Clutch  
 **Role:** Chief of Staff — Intake, Routing, and Delivery  
-**Model:** Claude Opus (latest)  
+**Model:** claude-sonnet-4-20250514  
 **Persona Version:** 2.1  
 **Status:** Active
 

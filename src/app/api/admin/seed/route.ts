@@ -488,10 +488,10 @@ export async function POST() {
     id: AGENT_CLUTCH_ID,
     name: 'Clutch',
     role: 'Operations',
-    base_persona_version: 'v1.0',
+    base_persona_version: 'v2.1',
     status: 'active',
-    default_model: '',
-    provider: '',
+    default_model: 'claude-sonnet-4-20250514',
+    provider: 'anthropic',
     description: 'The operations bridge: captures Slack requests, resolves docs, creates structured backlog tasks, and delivers completed work back to Slack and GitLab.',
   } as never, { onConflict: 'id' });
   results.push('Clutch agent: ensured');
