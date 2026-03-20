@@ -7,17 +7,44 @@
 
 ## Open Questions
 
-- [ ] What is the pricing model? (flat monthly SaaS, per-seat, per-prescription volume, tiered, hybrid?)
-- [ ] What is the target price range / ACV?
-- [ ] Will there be a free trial or freemium tier?
-- [ ] How will pricing scale? (number of providers, patients, locations, prescriptions/month?)
-- [ ] Are there implementation / setup fees?
-- [ ] What does the competitor pricing landscape look like?
+- [ ] What are the exact volume thresholds that determine the $299 vs. $750 platform fee? (e.g., <100 Rx/mo = $299, 100–300 = $499, 300+ = $750?)
 - [ ] Will there be annual vs. monthly billing options? (incentivize annual with a discount?)
+- [ ] Are there implementation / setup fees?
+- [ ] Will there be a free trial or demo sandbox?
+- [ ] What does competitor pricing look like? (AutopilotRX, NimbleRx — research needed)
 
 ---
 
-## 1. Pricing Philosophy
+## 1. Revenue Model (Approved)
+
+FullStackRx generates revenue through two streams:
+
+### Stream 1: Platform Fee
+- **Per location, per month**
+- Range: **$299 – $750/location/month**
+- Scaled by transaction volume (higher volume = higher tier)
+- Volume thresholds TBD — see Open Questions
+
+### Stream 2: Transaction Fee
+- **Per prescription processed through the platform**
+- Range: **$0.75 – $2.00 per Rx**
+- Charged to provider or patient (pharmacy's choice)
+- Rate is negotiated by the sales rep at close — rep has incentive to negotiate up
+- Floor: $0.75 | Ceiling: $2.00
+
+### Combined Revenue Example
+
+| Pharmacy Size | Rx/mo | Platform Fee | Trans. Fee | Monthly Revenue | Annual Revenue |
+|--------------|-------|-------------|------------|----------------|---------------|
+| Small | 75 | $299 | $0.75 = $56 | **$355** | **$4,260** |
+| Medium | 200 | $499 | $1.50 = $300 | **$799** | **$9,588** |
+| Large | 400 | $750 | $2.00 = $800 | **$1,550** | **$18,600** |
+
+> Note: Transaction fee volume heavily outweighs platform fee at scale — transaction revenue is the real growth engine.
+
+---
+
+## 2. Pricing Philosophy
 
 > 🔴 TBD
 

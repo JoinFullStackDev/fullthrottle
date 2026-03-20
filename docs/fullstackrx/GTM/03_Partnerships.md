@@ -91,27 +91,25 @@
 ### Philosophy
 Fair enough to motivate referrals, sustainable given our pricing model, simple enough to explain in one sentence.
 
-### Proposed Model: Tiered Revenue Share
+### Approved Model: Flat Fee Per Converted Customer
 
-| Tier | Trigger | Compensation |
-|------|---------|--------------|
-| **Standard Referral** | Referred pharmacy signs and pays for first month | **15% of MRR for 12 months** |
-| **Premium Referral Partner** | Formal agreement, committed pipeline, co-marketing | **20% of MRR for 12 months** + co-marketing support |
-| **Enterprise / Reseller** | See Section 5 | Custom — see below |
+Referral partners make the warm introduction only — FullStackRx sales reps still run the full sales cycle. Compensation reflects the value of a warm lead, not a closed deal.
 
-**Example:** If a referred pharmacy pays $500/mo, the referral partner earns $75/mo for 12 months = **$900 total per customer referred.**
+| Tier | Trigger | Flat Fee |
+|------|---------|----------|
+| **Standard Referral** | Referred pharmacy signs + first payment received | **$250 (Starter / small volume)** |
+| **Premium Referral Partner** | Formal agreement, committed pipeline, co-marketing | **$400 (Growth / medium volume)** |
+| **Enterprise** | Custom — negotiated per deal | TBD |
 
-### Terms (Draft)
+*Exact dollar amounts to be finalized once pricing tiers are locked. See [Pricing](./05_Pricing.md).*
+
+### Terms
 - Referral must be a new customer not already in our pipeline
-- Commission paid monthly, aligned with customer payment
-- If customer churns, commission stops
+- Flat fee paid once, 30 days after customer's first payment clears
+- No recurring commission — sales rep handles conversion and earns their own comp separately
 - Referral partner must be on a signed referral agreement (see Agreements doc)
 - 90-day attribution window from first contact
-
-> 🔴 **Questions for Spencer:**
-> - Is 15% the right number, or do you want to anchor higher/lower?
-> - Should there be a flat fee option instead of (or in addition to) revenue share? (e.g., $500 flat per signed customer)
-> - Should we cap the commission period at 12 months or make it lifetime?
+- Referral code or named attribution required for tracking
 
 ---
 
@@ -131,10 +129,10 @@ Companies or agencies that **purchase FullStackRx on behalf of a pharmacy client
 | Model | How It Works | Pros | Cons |
 |-------|-------------|------|------|
 | **Wholesale / White-label** | Reseller buys at X% discount, sells at retail price. They set the margin. | Simple, clean | Less control over pricing/positioning |
-| **Agency margin** | We bill end customer, pay reseller a % margin (e.g., 25–30%) | We maintain customer relationship | More admin |
+| **Agency margin** | We bill end customer, pay reseller a % margin (**20%**) | We maintain customer relationship | More admin |
 | **Co-sell** | Reseller refers and co-sells, we close — higher commission for active involvement | Best for complex deals | Requires more coordination |
 
-> 🔴 **Recommended starting point:** Agency margin model — resellers earn 25% of MRR as long as they maintain the relationship. Simpler than wholesale, we keep the direct customer relationship for support and compliance purposes (important for HIPAA/BAA execution).
+> ✅ **Approved model:** Agency margin — resellers earn **20% of MRR** as long as they maintain the relationship. We keep the direct customer relationship for support and compliance (critical for HIPAA/BAA execution).
 
 ### Reseller Requirements (Draft)
 - Signed reseller agreement (see Agreements doc)
