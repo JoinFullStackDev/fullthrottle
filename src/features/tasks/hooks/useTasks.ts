@@ -39,29 +39,50 @@ export function useTasks() {
     }
   }, []);
 
-  // Start/stop polling based on whether any tasks are in_progress
+  // Start/stop polling based on active task states; respect tab visibility
   useEffect(() => {
-    const hasInProgress = tasks.some((t) => t.status === 'in_progress');
+    const needsPolling = tasks.some(
+      (t) => t.status === 'in_progress' || t.status === 'waiting',
+    );
 
-    if (hasInProgress && !pollRef.current) {
+    const startPolling = () => {
+      if (pollRef.current) return;
       pollRef.current = setInterval(async () => {
+        if (document.visibilityState !== 'visible') return;
         const updated = await silentRefetch();
-        // Stop polling if nothing is in_progress anymore
-        if (!updated.some((t) => t.status === 'in_progress') && pollRef.current) {
+        const stillNeedsPolling = updated.some(
+          (t) => t.status === 'in_progress' || t.status === 'waiting',
+        );
+        if (!stillNeedsPolling && pollRef.current) {
           clearInterval(pollRef.current);
           pollRef.current = null;
         }
       }, POLL_INTERVAL_MS);
-    } else if (!hasInProgress && pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
+    };
 
-    return () => {
+    const stopPolling = () => {
       if (pollRef.current) {
         clearInterval(pollRef.current);
         pollRef.current = null;
       }
+    };
+
+    if (needsPolling) {
+      startPolling();
+    } else {
+      stopPolling();
+    }
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && needsPolling) {
+        startPolling();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [tasks, silentRefetch]);
 

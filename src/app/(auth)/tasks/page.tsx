@@ -31,7 +31,7 @@ import KanbanBoard from '@/features/tasks/components/KanbanBoard';
 import TaskForm from '@/features/tasks/components/TaskForm';
 import type { TaskFormData } from '@/features/tasks/components/TaskForm';
 import { useTasks } from '@/features/tasks/hooks/useTasks';
-import { createTask, updateTaskStatus } from '@/features/tasks/service';
+import { createTask, updateTaskStatus, reengageTask } from '@/features/tasks/service';
 import { useAgents } from '@/features/agents/hooks/useAgents';
 import { useAuth } from '@/hooks/useAuth';
 import { listProfiles } from '@/lib/services/profiles';
@@ -100,6 +100,15 @@ export default function TasksPage() {
         createdBy: user.id,
       });
       setTasks((prev) => [newTask, ...prev]);
+    } catch {
+      refetch();
+    }
+  };
+
+  const handleReengage = async (taskId: string) => {
+    try {
+      const updated = await reengageTask(taskId);
+      setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)));
     } catch {
       refetch();
     }
@@ -187,7 +196,7 @@ export default function TasksPage() {
       </Box>
 
       {view === 'kanban' ? (
-        <KanbanBoard tasks={filteredTasks} ownerNames={ownerNames} onTaskMove={handleTaskMove} />
+        <KanbanBoard tasks={filteredTasks} ownerNames={ownerNames} onTaskMove={handleTaskMove} onReengage={handleReengage} />
       ) : (
         <Card>
           <List disablePadding>
