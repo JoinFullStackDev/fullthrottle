@@ -40,6 +40,31 @@ export async function createFolder(params: {
   return rowToFolder(data);
 }
 
+export async function updateFolder(id: string, params: { parentId?: string | null; name?: string }): Promise<DocFolder> {
+  const supabase = getClient();
+
+  // Guard against circular nesting: walk ancestors of newParentId and ensure `id` is not in chain
+  if (params.parentId !== undefined && params.parentId !== null) {
+    const { data: allFolders } = await supabase.from('doc_folders').select('id, parent_id');
+    const parentMap = new Map<string, string | null>(
+      (allFolders ?? []).map((f: Record<string, unknown>) => [f.id as string, (f.parent_id as string | null) ?? null]),
+    );
+    let cursor: string | null = params.parentId;
+    while (cursor !== null) {
+      if (cursor === id) throw new Error('Circular nesting detected: cannot move a folder into its own descendant.');
+      cursor = parentMap.get(cursor) ?? null;
+    }
+  }
+
+  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if ('parentId' in params) updates.parent_id = params.parentId ?? null;
+  if (params.name !== undefined) updates.name = params.name;
+
+  const { data, error } = await supabase.from('doc_folders').update(updates).eq('id', id).select().single();
+  if (error) throw new Error(error.message);
+  return rowToFolder(data);
+}
+
 export async function deleteFolder(id: string): Promise<void> {
   const supabase = getClient();
   const { error } = await supabase.from('doc_folders').delete().eq('id', id);

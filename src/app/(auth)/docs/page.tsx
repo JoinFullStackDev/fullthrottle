@@ -33,6 +33,7 @@ import {
   listDocFiles,
   createFolder,
   deleteFolder,
+  updateFolder,
   createDoc,
   deleteDoc,
   uploadDocFile,
@@ -107,6 +108,15 @@ export default function DocsPage() {
     await createFolder({ name: newFolderName.trim(), parentId: newFolder.parentId });
     setNewFolder({ open: false, parentId: null });
     await loadFolders();
+  };
+
+  const handleMoveFolder = async (folderId: string, newParentId: string | null) => {
+    try {
+      await updateFolder(folderId, { parentId: newParentId });
+      await loadFolders();
+    } catch (err) {
+      console.error('Failed to move folder:', err);
+    }
   };
 
   const handleDeleteFolder = async (id: string) => {
@@ -184,6 +194,7 @@ export default function DocsPage() {
             onSelectFolder={handleSelectFolder}
             onCreateFolder={handleCreateFolder}
             onDeleteFolder={handleDeleteFolder}
+            onMoveFolder={handleMoveFolder}
           />
         </Box>
       </Paper>
