@@ -7,8 +7,8 @@
 
 ## Open Questions
 
-- [ ] Which headline direction is approved? (see Section 2 — options drafted, awaiting Spencer feedback)
-- [ ] Website branding: site shows "CompoundRx" — is this the product brand name, or does it need to be updated to FullStackRx?
+- [x] Headline directions approved — all 4 kept, primary is Option A (value-focused)
+- [ ] Website branding: site still in progress — revisit once adjustments are complete
 - [ ] What associations are priority targets? (IACP, PCAB, others?)
 - [ ] What events / conferences are on the calendar pre-launch?
 - [ ] Who are the referral sources? (pharmacy consultants, ingredient suppliers, billing companies?)
@@ -49,7 +49,7 @@
 **D — Bold / positioning:**
 > *"Compounding pharmacies run on relationships. FullStackRx makes the workflow match."*
 
-> 🔴 **Decision needed:** Which headline direction? Or new direction to explore?
+> ✅ **Decision:** Keep all 4 — each maps to a different sales persona. **Primary headline: Option A (value-focused).** Use B for pain-led outreach, C for ROI-conscious buyers, D for brand/positioning contexts.
 
 ---
 
