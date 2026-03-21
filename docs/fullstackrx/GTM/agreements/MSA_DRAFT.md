@@ -82,7 +82,7 @@ Subscription tier is determined by monthly Rx volume as set forth in the Order F
 ## ARTICLE 4: TERM AND TERMINATION
 
 ### 4.1 Term
-This Agreement commences on the Effective Date and continues for the Initial Term specified in the Order Form, then automatically renews for successive terms (monthly or annual, matching the Initial Term) unless either Party provides written notice of non-renewal: (a) 30 days prior to renewal for monthly contracts; or (b) 90 days prior to renewal for annual contracts.
+This Agreement commences on the Effective Date and continues for the Initial Term specified in the Order Form, then automatically renews for successive terms (monthly or annual, matching the Initial Term) unless either Party provides written notice of non-renewal 30 days prior to renewal.
 
 ### 4.2 Termination for Cause
 Either Party may terminate this Agreement upon written notice if the other Party: (a) materially breaches this Agreement and fails to cure within 30 days of written notice; or (b) becomes insolvent, makes an assignment for the benefit of creditors, or has a receiver appointed.

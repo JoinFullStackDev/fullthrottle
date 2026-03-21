@@ -36,7 +36,7 @@ The pharmacy signs **one master document** that includes:
 | **Auto-renewal** | Renews automatically unless cancelled with 30-day notice | ❌ Fixed — not negotiable |
 | **Payment Terms** | Net 0 (payment at signing or first of month) | ❌ Fixed |
 | **Annual Discount** | 10% if annual contract — only if no other discounts applied | ✅ Yes — rep applies or doesn't |
-| **Termination** | 30-day written notice (monthly), 90-day notice (annual) | ❌ Fixed |
+| **Termination** | 30-day written notice (all contracts) | ❌ Fixed |
 | **BAA** | Attached as Exhibit A — must be executed simultaneously | ❌ Fixed — non-negotiable, HIPAA required |
 | **Limitation of Liability** | Standard cap at 12 months of fees paid | ❌ Fixed |
 | **Governing Law** | Utah (FullStack's state) | ❌ Fixed |
