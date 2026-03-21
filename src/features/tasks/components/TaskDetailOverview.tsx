@@ -16,7 +16,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import EditIcon from '@mui/icons-material/Edit';
 import { SectionContainer } from '@/components/layout';
 import MarkdownRenderer from '@/features/conversations/components/MarkdownRenderer';
-import { updateTask, updateTaskStatus } from '@/features/tasks/service';
+import { updateTask, updateTaskStatus, assignTaskAgent } from '@/features/tasks/service';
 import { listActiveProjects } from '@/features/projects/service';
 import type { Project } from '@/lib/types';
 import {
@@ -24,8 +24,10 @@ import {
   PRIORITY_LABELS,
   KANBAN_COLUMN_ORDER,
   OwnerType,
+  KNOWN_AGENT_SLUGS,
+  KNOWN_AGENT_ID_TO_SLUG,
 } from '@/lib/constants';
-import type { TaskStatusValue, TaskPriorityValue, OwnerTypeValue } from '@/lib/constants';
+import type { TaskStatusValue, TaskPriorityValue } from '@/lib/constants';
 import type { Task, Agent, User } from '@/lib/types';
 
 interface Props {
@@ -50,8 +52,10 @@ export default function TaskDetailOverview({ task, agents, profiles, ownerNames,
   const [description, setDescription] = useState(task.description);
   const [status, setStatus] = useState<TaskStatusValue>(task.status);
   const [priority, setPriority] = useState<TaskPriorityValue>(task.priority);
-  const [ownerType, setOwnerType] = useState<OwnerTypeValue>(task.ownerType);
-  const [ownerId, setOwnerId] = useState(task.ownerId);
+  // Agent slug state (derived from ownerId for known agents)
+  const [agentSlug, setAgentSlug] = useState<string>(
+    task.ownerType === OwnerType.AGENT ? (KNOWN_AGENT_ID_TO_SLUG[task.ownerId] ?? '') : '',
+  );
   const [projectTag, setProjectTag] = useState(task.projectTag);
 
   const resetForm = () => {
@@ -59,8 +63,6 @@ export default function TaskDetailOverview({ task, agents, profiles, ownerNames,
     setDescription(task.description);
     setStatus(task.status);
     setPriority(task.priority);
-    setOwnerType(task.ownerType);
-    setOwnerId(task.ownerId);
     setProjectTag(task.projectTag);
     setFeedback(null);
   };
@@ -79,12 +81,14 @@ export default function TaskDetailOverview({ task, agents, profiles, ownerNames,
     }
   };
 
-  const handleAssign = async () => {
+  const handleAssignAgent = async (slug: string) => {
+    setAgentSlug(slug);
+    if (!slug) return;
     setSaving(true);
     try {
-      await updateTask(task.id, { ownerType, ownerId });
+      await assignTaskAgent(task.id, slug);
       onUpdated();
-      setFeedback({ type: 'success', message: 'Owner updated.' });
+      setFeedback({ type: 'success', message: `Assigned to ${KNOWN_AGENT_SLUGS.find((a) => a.slug === slug)?.name ?? slug}.` });
     } catch (err) {
       setFeedback({ type: 'error', message: (err as Error).message });
     } finally {
@@ -109,10 +113,6 @@ export default function TaskDetailOverview({ task, agents, profiles, ownerNames,
       setSaving(false);
     }
   };
-
-  const owners = ownerType === OwnerType.AGENT
-    ? agents.map((a) => ({ id: a.id, label: a.name }))
-    : profiles.map((u) => ({ id: u.id, label: u.name }));
 
   if (editing) {
     return (
@@ -225,38 +225,22 @@ export default function TaskDetailOverview({ task, agents, profiles, ownerNames,
                 </Select>
               </FormControl>
 
-              <FormControl size="small" sx={{ minWidth: 120 }}>
-                <InputLabel>Owner Type</InputLabel>
+              <FormControl size="small" sx={{ minWidth: 180 }}>
+                <InputLabel>Assign Agent</InputLabel>
                 <Select
-                  value={ownerType}
-                  label="Owner Type"
-                  onChange={(e) => { setOwnerType(e.target.value as OwnerTypeValue); setOwnerId(''); }}
+                  value={agentSlug}
+                  label="Assign Agent"
+                  onChange={(e) => handleAssignAgent(e.target.value)}
+                  disabled={saving}
                 >
-                  <MenuItem value={OwnerType.HUMAN}>Human</MenuItem>
-                  <MenuItem value={OwnerType.AGENT}>Agent</MenuItem>
-                </Select>
-              </FormControl>
-
-              <FormControl size="small" sx={{ minWidth: 160 }}>
-                <InputLabel>Owner</InputLabel>
-                <Select value={ownerId} label="Owner" onChange={(e) => setOwnerId(e.target.value)}>
                   <MenuItem value="">
                     <em>Unassigned</em>
                   </MenuItem>
-                  {owners.map((o) => (
-                    <MenuItem key={o.id} value={o.id}>{o.label}</MenuItem>
+                  {KNOWN_AGENT_SLUGS.map((a) => (
+                    <MenuItem key={a.slug} value={a.slug}>{a.name}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
-
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={handleAssign}
-                disabled={saving || (ownerType === task.ownerType && ownerId === task.ownerId)}
-              >
-                Assign
-              </Button>
             </Box>
           </CardContent>
         </Card>

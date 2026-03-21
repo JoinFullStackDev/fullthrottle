@@ -171,6 +171,18 @@ export async function reengageTask(id: string, context?: string): Promise<Task> 
   return refreshed ?? (json.task as Task);
 }
 
+export async function assignTaskAgent(id: string, agentSlug: string): Promise<void> {
+  const res = await fetch(`/api/clutch/tasks/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ assignedAgent: agentSlug }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Failed to assign agent' }));
+    throw new Error(err.error ?? 'Failed to assign agent');
+  }
+}
+
 export async function deleteTask(id: string): Promise<void> {
   const supabase = createBrowserSupabaseClient();
   const { error } = await supabase

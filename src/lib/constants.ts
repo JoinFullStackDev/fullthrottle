@@ -132,3 +132,19 @@ export const INTEGRATION_STATUS_LABELS: Record<IntegrationStatusValue, string> =
   [IntegrationStatus.CONNECTED]: 'Connected',
   [IntegrationStatus.ERROR]: 'Error',
 };
+
+// Known agent slugs → display names + UUIDs
+export const KNOWN_AGENT_SLUGS: { slug: string; name: string; id: string }[] = [
+  { slug: 'axel',   name: 'Axel (Engineering)', id: 'a0000000-0000-0000-0000-000000000001' },
+  { slug: 'riff',   name: 'Riff (Product)',      id: 'a0000000-0000-0000-0000-000000000002' },
+  { slug: 'torque', name: 'Torque (QA)',          id: 'a0000000-0000-0000-0000-000000000003' },
+  { slug: 'clutch', name: 'Clutch (CoS)',         id: 'a0000000-0000-0000-0000-000000000004' },
+];
+
+export const KNOWN_AGENT_ID_TO_SLUG: Record<string, string> = Object.fromEntries(
+  KNOWN_AGENT_SLUGS.map((a) => [a.id, a.slug]),
+);
+
+export const KNOWN_AGENT_ID_TO_NAME: Record<string, string> = Object.fromEntries(
+  KNOWN_AGENT_SLUGS.map((a) => [a.id, a.name]),
+);
