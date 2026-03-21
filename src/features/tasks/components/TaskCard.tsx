@@ -15,7 +15,7 @@ import SmartToyIcon from '@mui/icons-material/SmartToyOutlined';
 import PersonIcon from '@mui/icons-material/PersonOutlined';
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import type { Task } from '@/lib/types';
-import { OwnerType, PRIORITY_LABELS } from '@/lib/constants';
+import { OwnerType, PRIORITY_LABELS, KNOWN_AGENT_ID_TO_NAME } from '@/lib/constants';
 import type { TaskPriorityValue } from '@/lib/constants';
 import type { AgentState } from './KanbanBoard';
 
@@ -75,7 +75,10 @@ export default function TaskCard({ task, ownerName, agentState = 'idle', onReeng
   const [isReengaging, setIsReengaging] = useState(false);
   const [hovered, setHovered] = useState(false);
 
-  const displayName = ownerName ?? task.ownerId;
+  const displayName =
+    ownerName ??
+    (task.ownerType === OwnerType.AGENT ? KNOWN_AGENT_ID_TO_NAME[task.ownerId] : undefined) ??
+    task.ownerId;
   const stateConfig = STATE_CONFIG[agentState];
   const canReengage =
     task.ownerType === OwnerType.AGENT &&

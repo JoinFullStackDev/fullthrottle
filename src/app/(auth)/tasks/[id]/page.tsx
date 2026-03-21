@@ -33,6 +33,7 @@ import {
   TASK_STATUS_LABELS,
   PRIORITY_LABELS,
   OwnerType,
+  KNOWN_AGENT_ID_TO_NAME,
 } from '@/lib/constants';
 import type { TaskPriorityValue } from '@/lib/constants';
 import type { Task, User } from '@/lib/types';
@@ -126,7 +127,11 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
 
   const intakeType = task.metadata?.intakeType as string | undefined;
   const suggestedAgent = task.metadata?.suggestedAgent as string | undefined;
-  const ownerName = task.ownerId ? ownerNames[task.ownerId] : null;
+  const ownerName =
+    (task.ownerId ? ownerNames[task.ownerId] : null) ??
+    (task.ownerType === OwnerType.AGENT && task.ownerId
+      ? KNOWN_AGENT_ID_TO_NAME[task.ownerId]
+      : null);
   const isUnassigned = !task.ownerId;
   const hasDetails = !!intakeType;
   const hasRelated = !!task.parentTaskId || intakeType === 'parent';
