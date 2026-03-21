@@ -24,9 +24,9 @@ FullStackRx is a compounding pharmacy workflow platform built to connect pharmac
 | 4 | [Sales](./04_Sales.md) | `04_Sales.md` | 🟢 Complete |
 | 5 | [Pricing](./05_Pricing.md) | `05_Pricing.md` | 🟢 Complete |
 | 6 | [Agreements](./06_Agreements.md) | `06_Agreements.md` | 🔴 TBD |
-| 7 | [Onboarding](./07_Onboarding.md) | `07_Onboarding.md` | 🟡 Draft |
-| 8 | [Account Management](./08_Account_Management.md) | `08_Account_Management.md` | 🔴 TBD |
-| 9 | [Client Success](./09_Client_Success.md) | `09_Client_Success.md` | 🔴 TBD |
+| 7 | [Onboarding](./07_Onboarding.md) | `07_Onboarding.md` | 🟢 Complete |
+| 8 | [Account Management](./08_Account_Management.md) | `08_Account_Management.md` | 🟢 Complete |
+| 9 | [Client Success](./09_Client_Success.md) | `09_Client_Success.md` | 🟢 Complete |
 
 ---
 

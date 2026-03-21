@@ -110,11 +110,13 @@ The BAA must comply with **45 CFR §164.504(e)** and cover:
 
 ### Support Response Times by Tier
 
-| Tier | First Response | Resolution Target | Channel |
-|------|---------------|-------------------|---------|
-| Low ($299) | 24 business hours | 3 business days | Email / in-app |
-| Mid ($499) | 8 business hours | 1 business day | Email / in-app / chat |
-| High ($750) | 4 business hours | Same business day | Email / chat / phone |
+| Tier | First Response | Channel |
+|------|---------------|---------|
+| Low ($299) | 24 business hours | Email / in-app |
+| Mid ($499) | 24 business hours | Email / in-app |
+| High ($750) | 24 business hours | Email / in-app (priority handling) |
+
+> Phone support added as team scales beyond launch.
 
 ---
 

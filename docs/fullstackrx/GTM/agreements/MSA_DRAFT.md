@@ -181,11 +181,11 @@ FullStackRx will provide at least 48 hours' advance notice for scheduled mainten
 ### 11.3 Support
 FullStackRx will provide customer support during business hours per the following response time commitments:
 
-| Tier | First Response | Resolution Target |
-|------|---------------|-------------------|
-| Low ($299/mo) | 24 business hours | 3 business days |
-| Mid ($499/mo) | 8 business hours | 1 business day |
-| High ($750/mo) | 4 business hours | Same business day |
+| Tier | First Response | Channel |
+|------|---------------|---------|
+| Low ($299/mo) | 24 business hours | Email / in-app |
+| Mid ($499/mo) | 24 business hours | Email / in-app |
+| High ($750/mo) | 24 business hours | Email / in-app (priority handling) |
 
 ---
 

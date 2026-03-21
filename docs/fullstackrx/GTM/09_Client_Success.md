@@ -1,126 +1,138 @@
 # Client Success
 
-**Status:** 🔴 TBD  
+**Status:** 🟢 Complete  
 **Last Updated:** 2026-03-20
 
 ---
 
 ## Open Questions
 
-- [ ] What is the client success model at launch? (self-serve, reactive support, proactive CSM?)
-- [ ] Will there be a dedicated Customer Success Manager (CSM) at launch?
-- [ ] What support channels will be offered? (email, chat, phone, ticketing?)
-- [ ] What are the support hours? (business hours only, 24/7, tiered by plan?)
-- [ ] What is the knowledge base / self-serve support strategy?
-- [ ] How will product feedback from customers be collected and routed?
-- [ ] What does "success" look like for a FullStackRx customer at 30/60/90 days?
+- [ ] Ticketing system — informal now, needs to be addressed as team scales (Intercom, Zendesk, Linear, etc.)
+- [ ] Phone support — add when team grows beyond Drake
+- [ ] CS compensation structure — define when first CS hire is made
+- [ ] Knowledge base platform — where do help articles, training videos, and FAQs live?
 
 ---
 
-## 1. Client Success Philosophy
+## 1. Role Definition
 
-> 🔴 TBD
+CS owns **technical issue resolution** — bugs, errors, login problems, integration failures. They are the technical problem-solvers. AM owns the relationship; CS owns the fix.
 
-Considerations:
-- Compounding pharmacies are operationally lean — they need reliable, fast support
-- HIPAA-sensitive environment means support staff need PHI handling training
-- Success = pharmacies growing their provider network + prescription volume
+| Responsibility | CS | AM |
+|---------------|----|----|
+| Technical issues, bugs, errors | ✅ Primary | — |
+| Login / access issues | ✅ Primary | — |
+| Training ("how do I do X") | — | ✅ Primary |
+| Relationship management | — | ✅ Primary |
+| Cancellation save | ✅ Support | ✅ Lead |
+| Knowledge base & help resources | ✅ Shared with AM and Onboarding | |
+| Training videos | ✅ Shared with Onboarding | |
 
----
-
-## 2. Success Milestones
-
-> Define what a successful customer looks like at each stage
-
-| Milestone | Definition | Target Timeline |
-|-----------|------------|----------------|
-| Activated | Pharmacy setup complete, at least 1 provider onboarded | Week 1–2 |
-| Engaged | First prescription submitted and processed | Week 2–3 |
-| Adopted | 3+ active providers, regular weekly Rx volume | Month 1–2 |
-| Successful | Growing provider network, high Rx volume, no churn risk | Month 3+ |
-| Advocate | Willing to provide testimonial or referral | Month 6+ |
+> **The rule:** Technical problem → CS. Relationship / training / growth → AM. Cancellation due to technical issue → both, working together.
 
 ---
 
-## 3. Support Model
+## 2. CS Team Structure
 
-> 🔴 TBD
+### Launch Phase (Drake)
+Drake handles Sales, Onboarding, AM, and CS simultaneously.
 
-### Support Channels
+### Scaling Path
+| Phase | Structure |
+|-------|-----------|
+| Launch | Drake covers all |
+| First hire | One person covering AM + CS combined |
+| Scale | AM and CS split into separate departments |
+| Mature | Dedicated CS team with defined specialties |
 
-| Channel | Tier Availability | Status |
-|---------|-------------------|--------|
-| In-app chat (Intercom or similar) | All tiers | 🔴 TBD |
-| Email support | All tiers | 🔴 TBD |
-| Phone / video | Growth + Enterprise | 🔴 TBD |
-| Dedicated CSM | Enterprise | 🔴 TBD |
-| Knowledge base / help center | All tiers (self-serve) | 🔴 TBD |
+---
 
-### Support SLAs
+## 3. Support Channels
 
-> 🔴 TBD — Align with Agreements doc
+| Channel | Available Now | Notes |
+|---------|--------------|-------|
+| **In-app support** | Yes (at launch) | Primary channel |
+| **Email** | Yes (at launch) | Primary channel |
+| **Phone** | No — future | Initially customers reach Drake directly; formal phone support added as team scales |
+
+> At launch, pharmacies will likely contact Drake directly via phone or text for urgent issues. This is fine early on but needs to be formalized into a ticketing/support system as volume grows.
+
+---
+
+## 4. SLA — Support Response Times
+
+**All tiers: 24-hour first response** (business hours)
 
 | Tier | First Response | Resolution Target |
-|------|---------------|-------------------|
-| Starter | TBD | TBD |
-| Growth | TBD | TBD |
-| Enterprise | TBD | TBD |
+|------|---------------|------------------|
+| Low ($299) | 24 business hours | Best effort |
+| Mid ($499) | 24 business hours | Best effort |
+| High ($750) | 24 business hours | Priority handling |
+
+> SLA updated from tiered (24hr/8hr/4hr) to flat 24hr across all tiers at launch. Revisit as team grows and capacity allows differentiated response times.
 
 ---
 
-## 4. Knowledge Base / Self-Serve
+## 5. Issue Escalation Path
 
-> 🔴 TBD — Build before launch
+| Severity | Description | Path |
+|----------|-------------|------|
+| **L1 — Self-serve** | User error, how-to question, training gap | Redirect to knowledge base / training video → AM if persistent |
+| **L2 — CS resolvable** | Access issues, configuration errors, non-code bugs | CS resolves directly |
+| **L3 — Bug / engineering needed** | Code-level bug, integration failure, data issue | CS submits bug report → assigned directly to engineering team member |
+| **L4 — Critical / escalated** | Platform down, data integrity issue, HIPAA concern | Drake escalates immediately → engineering + Spencer |
 
-Priority articles:
-- [ ] Getting started guide (pharmacy)
-- [ ] How to invite a provider
-- [ ] How to add products to your formulary
-- [ ] How to onboard a patient
-- [ ] How prescriptions flow (lifecycle explainer)
-- [ ] HIPAA & data security FAQ
-- [ ] Billing & payments FAQ
-- [ ] Troubleshooting: patient can't log in
-- [ ] Troubleshooting: provider not receiving invitation
-
-Platform options: Intercom, Notion (public), GitBook, Mintlify, HelpScout Docs
+> Engineering bugs are submitted by CS and assigned directly to the relevant team member — no intermediary required at launch. As team formalizes, this flows through a ticketing system.
 
 ---
 
-## 5. Voice of the Customer (VoC)
+## 6. Feedback & Bug Tracking
 
-> 🔴 TBD — How do we collect and act on feedback?
+**Current state:** Informal — CS flags issues directly to engineering.
 
-- [ ] In-app feedback / NPS surveys
-- [ ] Post-onboarding survey (Day 30)
-- [ ] Quarterly feedback calls (Growth+)
-- [ ] Feature request intake process
-- [ ] Feedback → Riff (Product) pipeline via FullThrottle
+**Future state:** Formal ticketing system needed as volume grows.
+
+| Tool Type | Options to Evaluate | Priority |
+|-----------|-------------------|---------|
+| Customer support / ticketing | Intercom, Zendesk, HelpScout | Post-launch |
+| Internal bug tracking | Linear (already likely in eng workflow), Jira | Post-launch |
+| Integration | Support ticket → auto-creates bug in Linear | Future |
+
+> 🔴 **Action item:** Evaluate and select a ticketing system before first CS hire. Drake shouldn't be managing bugs via text/email at scale.
 
 ---
 
-## 6. Key Metrics
+## 7. Shared Resources (CS + AM + Onboarding)
 
-> 🔴 TBD
+| Resource | Owned By | Shared With |
+|----------|---------|------------|
+| Training videos (pharmacy) | CS + Onboarding | AM |
+| Training videos (provider) | CS + Onboarding | AM |
+| Training videos (patient) | CS + Onboarding | — |
+| Knowledge base / help center | CS | AM, Onboarding |
+| FAQ articles | CS | AM, Onboarding |
+| Weekly provider webinar | Onboarding (Drake) | CS joins for technical Q&A |
+
+---
+
+## 8. CS Success Metrics
 
 | Metric | Definition | Target |
-|--------|------------|--------|
-| NPS (Net Promoter Score) | Customer satisfaction/loyalty | > 50 |
-| CSAT | Support ticket satisfaction | > 90% |
-| Time to first resolution | Avg support ticket resolution time | TBD |
-| Churn rate | % customers lost per month | < 2% |
-| Time to Activated | Days from signup to first Rx processed | < 14 days |
-| Self-serve rate | % of support issues resolved without agent | > 60% |
+|--------|-----------|--------|
+| First Response Time | Time from ticket open to first CS reply | < 24 business hours |
+| Resolution Rate | % of tickets resolved without engineering escalation | > 80% |
+| CSAT | Post-resolution customer satisfaction score | > 4.0 / 5.0 |
+| Escalation Rate | % of tickets escalated to engineering | < 20% |
+| Churn from Technical Issues | Accounts lost where technical issue was primary reason | Minimize — track and report |
 
 ---
 
-## 7. Escalation & Churn Prevention
+## 9. Voice of the Customer
 
-> 🔴 TBD
+CS is the closest team to customer pain. Their feedback should feed directly into product:
 
-- Define churn risk signals (usage decline, no logins, support spike)
-- Define escalation playbook (who gets involved, what actions are taken)
-- Define win-back playbook for churned customers
+- **Now:** CS flags recurring issues to Drake informally → Drake prioritizes with engineering
+- **Future:** Structured feedback loop — CS tags ticket types, product team reviews weekly, top issues inform roadmap
 
 ---
 
