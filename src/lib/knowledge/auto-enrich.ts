@@ -5,16 +5,16 @@
  * call `enrichIntakeWithKnowledge` before submitting to POST /api/clutch/intake.
  *
  * This searches THREE knowledge sources in priority order:
- *   1. Indexed knowledge base (uploaded files, Google Drive docs) — Supabase
- *   2. Repo docs/ folder — design guides, architecture, overview, plan files
- *   3. Agent persona docs — _AGENTS/*/persona.md
+ *   1. Indexed knowledge base (uploaded files, Google Drive docs) -- Supabase
+ *   2. Repo docs/ folder -- design guides, architecture, overview, plan files
+ *   3. Agent persona docs -- _AGENTS/{agentId}/persona.md
  *
  * Results from all three are merged and deduped. Source IDs from the indexed
  * knowledge base are attached to the intake payload for agent grounding.
  * Doc-folder matches are surfaced in Clutch's Slack confirmation so the agent
  * knows what context is available even if it isn't DB-indexed.
  *
- * If no results are found in any source, the intake proceeds unchanged —
+ * If no results are found in any source, the intake proceeds unchanged --
  * enrichment is always best-effort and never blocks the request.
  */
 
@@ -28,14 +28,14 @@ import { searchProjectFiles } from '@/lib/projects/explorer';
 // ---------------------------------------------------------------------------
 
 export interface KnowledgeMatch {
-  /** DB source ID — only present for indexed knowledge base matches */
+  /** DB source ID -- only present for indexed knowledge base matches */
   sourceId?: string;
   title: string;
   excerpt: string;
   project: string | null;
   /** Where the match came from */
   source: 'knowledge_base' | 'docs' | 'agent_persona' | 'project_files';
-  /** Relative file path — only present for project_files matches */
+  /** Relative file path -- only present for project_files matches */
   filePath?: string;
 }
 
@@ -63,7 +63,7 @@ function extractSearchTerms(text: string, maxTerms = 6): string[] {
     .filter((w) => w.length > 3 && !STOPWORDS.has(w));
 
   const uniqueWords = [...new Set(words)];
-  // Sort by length descending — longer words tend to be more domain-specific
+  // Sort by length descending -- longer words tend to be more domain-specific
   return uniqueWords.sort((a, b) => b.length - a.length).slice(0, maxTerms);
 }
 
@@ -259,7 +259,7 @@ function searchAgentPersonas(docsDir: string, terms: string[], limit = 2): Knowl
 // ---------------------------------------------------------------------------
 
 function searchProjectFileSource(terms: string[], projectTag: string, limit = 5): KnowledgeMatch[] {
-  // Map project tag to project slug — tags may use hyphens, slugs are folder names
+  // Map project tag to project slug -- tags may use hyphens, slugs are folder names
   // Convention: try exact match first, then strip hyphens
   const matches = searchProjectFiles(terms, projectTag, limit);
 
@@ -292,10 +292,10 @@ function searchProjectFileSource(terms: string[], projectTag: string, limit = 5)
  * Search all four knowledge sources for content relevant to a request.
  *
  * Priority order:
- *   1. Indexed knowledge base (Supabase) — PRDs, SOWs, uploaded docs
- *   2. Repo docs/ folder — design guides, architecture, planning
- *   3. Agent persona docs — when request touches agent behavior
- *   4. Client project files — source code, READMEs, configs in ~/Desktop/fullstack/projects
+ *   1. Indexed knowledge base (Supabase) -- PRDs, SOWs, uploaded docs
+ *   2. Repo docs/ folder -- design guides, architecture, planning
+ *   3. Agent persona docs -- when request touches agent behavior
+ *   4. Client project files -- source code, READMEs, configs in ~/Desktop/fullstack/projects
  *
  * @param requestText  The raw Slack message text
  * @param projectTag   The project slug identified from the request
@@ -319,7 +319,7 @@ export async function findRelevantKnowledgeSources(
     Promise.resolve(searchProjectFileSource(terms, projectTag, 4)),
   ]);
 
-  // Merge, dedup by title — KB and docs first (higher authority), projects last
+  // Merge, dedup by title -- KB and docs first (higher authority), projects last
   const seen = new Set<string>();
   const all: KnowledgeMatch[] = [];
   for (const match of [...kbMatches, ...docMatches, ...personaMatches, ...projectMatches]) {

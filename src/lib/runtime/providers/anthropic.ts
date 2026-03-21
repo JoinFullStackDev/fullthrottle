@@ -13,9 +13,8 @@ const INITIAL_RETRY_DELAY_MS = 1_000;
  *   529 — Anthropic overloaded
  */
 function isRetryable(err: unknown): boolean {
-  if (err instanceof Anthropic.APIStatusError) {
-    return err.status === 429 || err.status === 529;
-  }
+  if (err instanceof Anthropic.RateLimitError) return true; // 429
+  if (err instanceof Anthropic.InternalServerError && (err as { status?: number }).status === 529) return true; // 529 overloaded
   // Network-level errors (ECONNRESET, ETIMEDOUT, etc.) are also retryable
   if (err instanceof Anthropic.APIConnectionError) return true;
   return false;
@@ -27,8 +26,8 @@ function isRetryable(err: unknown): boolean {
  * otherwise falls back to exponential backoff with jitter.
  */
 function retryDelayMs(err: unknown, attempt: number): number {
-  if (err instanceof Anthropic.APIStatusError) {
-    const retryAfter = err.headers?.['retry-after'];
+  if (err instanceof Anthropic.APIError) {
+    const retryAfter = (err as { headers?: Record<string, string> }).headers?.['retry-after'];
     if (retryAfter) {
       const seconds = parseFloat(retryAfter);
       if (!isNaN(seconds)) return seconds * 1_000;
@@ -104,8 +103,8 @@ export class AnthropicProvider implements LLMProvider {
     if (!stream) {
       const message = lastErr instanceof Error ? lastErr.message : 'Anthropic request failed';
       const isRateLimit =
-        lastErr instanceof Anthropic.APIStatusError &&
-        (lastErr.status === 429 || lastErr.status === 529);
+        lastErr instanceof Anthropic.RateLimitError ||
+        (lastErr instanceof Anthropic.InternalServerError && (lastErr as { status?: number }).status === 529);
       const userMessage = isRateLimit
         ? 'The AI service is temporarily rate-limited. Your message will be available shortly — please try again in a moment.'
         : `AI provider error: ${message}`;
