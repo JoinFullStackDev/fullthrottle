@@ -155,6 +155,22 @@ export async function listTasksByParent(parentId: string): Promise<Task[]> {
   return ((data ?? []) as TaskRow[]).map(rowToTask);
 }
 
+export async function reengageTask(id: string, context?: string): Promise<Task> {
+  const res = await fetch(`/api/clutch/tasks/${id}/reengage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ context }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Failed to re-engage task' }));
+    throw new Error(err.error ?? 'Failed to re-engage task');
+  }
+  const json = await res.json();
+  // Refresh the full task from supabase to get all fields
+  const refreshed = await getTaskById(id);
+  return refreshed ?? (json.task as Task);
+}
+
 export async function deleteTask(id: string): Promise<void> {
   const supabase = createBrowserSupabaseClient();
   const { error } = await supabase
