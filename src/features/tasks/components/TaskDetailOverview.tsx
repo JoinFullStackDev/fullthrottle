@@ -15,7 +15,7 @@ import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import EditIcon from '@mui/icons-material/Edit';
 import { SectionContainer } from '@/components/layout';
-import MarkdownRenderer from '@/features/conversations/components/MarkdownRenderer';
+import MarkdownRenderer from '@/components/shared/MarkdownRenderer';
 import { updateTask, updateTaskStatus, assignTaskAgent } from '@/features/tasks/service';
 import { listActiveProjects } from '@/features/projects/service';
 import type { Project } from '@/lib/types';
