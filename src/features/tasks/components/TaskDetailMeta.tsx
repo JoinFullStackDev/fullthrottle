@@ -19,7 +19,7 @@ import AttachFileIcon from '@mui/icons-material/AttachFile';
 import DescriptionIcon from '@mui/icons-material/DescriptionOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import { SectionContainer } from '@/components/layout';
-import MarkdownRenderer from '@/features/conversations/components/MarkdownRenderer';
+import MarkdownRenderer from '@/components/shared/MarkdownRenderer';
 import { getKnowledgeSourcesByIds, getKnowledgeContent } from '@/features/knowledge/service';
 import type { Task, KnowledgeSource } from '@/lib/types';
 

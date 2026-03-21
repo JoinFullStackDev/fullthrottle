@@ -15,7 +15,6 @@ import Avatar from '@mui/material/Avatar';
 import DashboardIcon from '@mui/icons-material/DashboardOutlined';
 import SmartToyIcon from '@mui/icons-material/SmartToyOutlined';
 import AssignmentIcon from '@mui/icons-material/AssignmentOutlined';
-import ChatIcon from '@mui/icons-material/ChatOutlined';
 import MenuBookIcon from '@mui/icons-material/MenuBookOutlined';
 import FolderIcon from '@mui/icons-material/FolderOutlined';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettingsOutlined';
@@ -42,7 +41,6 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: DashboardIcon },
   { label: 'Agents', href: '/agents', icon: SmartToyIcon },
   { label: 'Tasks', href: '/tasks', icon: AssignmentIcon },
-  { label: 'Conversations', href: '/conversations', icon: ChatIcon },
   { label: 'Knowledge', href: '/knowledge', icon: MenuBookIcon },
   { label: 'Docs', href: '/docs', icon: FolderIcon },
   { label: 'Integrations', href: '/integrations', icon: IntegrationInstructionsIcon, requiredAction: 'admin_access' },
