@@ -8,10 +8,10 @@
 ## Open Questions
 
 - [ ] What does the in-app account setup wizard look like? (engineering requirement — step-by-step setup flow)
-- [ ] CSV upload format for providers and prescriptions — what fields are required?
+- [x] CSV upload — engineering already working on it with required fields defined
 - [ ] How does the high-risk payment processor application get triggered? (in-app form, external link, or handled by FullStackRx on their behalf?)
 - [ ] What is the onboarding checklist definition of "fully onboarded"? (items to define)
-- [ ] Weekly provider webinar — who hosts? Spencer at launch, then who?
+- [ ] Weekly provider webinar — Drake hosts at launch, then who as team scales?
 - [ ] Training video production — who creates them and when?
 - [ ] PioneerRx integration onboarding flow — how does it get initiated for pharmacies on that system?
 
@@ -32,7 +32,7 @@ When a deal is marked **Closed Won** in the CRM:
 1. Setup fee is automatically collected via Stripe
 2. Recurring payments are scheduled
 3. **Welcome email sent automatically** — invites pharmacy owner to create their FullStackRx account
-4. Onboarding kickoff call scheduled (Spencer at launch)
+4. Onboarding kickoff call scheduled (Drake)
 5. Sales rep is notified — deal handoff complete
 
 ---
@@ -69,7 +69,7 @@ Providers are onboarded in parallel with pharmacy setup — no need to wait.
 ### Provider Training (Self-Serve)
 - Training videos available on demand (to be produced before launch)
 - **Weekly live webinar** — providers can join to learn the platform, ask questions
-  - Hosted by Spencer at launch
+  - Hosted by Drake
   - Frequency: weekly (consolidates provider questions, scales better than 1:1 support)
 - No dedicated onboarding calls for providers — self-serve with video + webinar support
 
@@ -106,22 +106,39 @@ Once the high-risk payment processor is approved:
 
 ## 6. Onboarding Checklist
 
-> The following tasks must be completed before an account is considered **fully onboarded**. Displayed in-app as a progress tracker so the pharmacy can see what's left.
+> **In the beginning:** Internal checklist used by the onboarding team (Drake) to track progress manually. Will eventually be built into the platform as an in-app progress tracker.
 
-### Pharmacy Checklist
-- [ ] Account created and profile complete
+### Milestone Definitions
+
+| Milestone | Definition |
+|-----------|-----------|
+| **Go-Live** | Payment processor approved + first provider actively processing Rx |
+| **Fully Onboarded** | All providers onboarded and processing prescriptions through FullStackRx (may take 30–60 days) |
+
+> After Day 14, FullStackRx's active effort drops significantly. The pharmacy and providers drive the remaining provider rollout. We monitor and support but don't hand-hold.
+
+### Internal Onboarding Checklist (Drake)
+
+**Week 1 (Days 1–7):**
+- [ ] Welcome email sent and account created
+- [ ] Kickoff onboarding call completed
+- [ ] Pharmacy profile complete
 - [ ] Payment processor application submitted
-- [ ] At least 1 staff member invited
-- [ ] Formulary / product catalog uploaded (minimum viable — can add more later)
-- [ ] At least 3 providers invited
-- [ ] Payment processor approved ← **go-live gate**
-- [ ] First prescription processed ← **onboarded ✅**
+- [ ] Formulary / product catalog uploaded or assisted
+- [ ] Staff invited to platform
+- [ ] First batch of providers invited
 
-### Provider Checklist (per provider)
-- [ ] Account created
-- [ ] Profile complete (NPI, specialty, license)
-- [ ] At least 1 patient created
-- [ ] First prescription submitted
+**Week 2 (Days 7–14):**
+- [ ] Provider accounts being created (self-serve)
+- [ ] Additional providers invited as needed
+- [ ] Payment processor approval received
+- [ ] ✅ **GO-LIVE** — First provider processing live Rx
+
+**Days 14–60 (Low-touch monitoring):**
+- [ ] Remaining providers invited and onboarding
+- [ ] Check-in call at Day 30 — how many providers active?
+- [ ] ✅ **FULLY ONBOARDED** — All providers onboarded and processing Rx
+- [ ] Handoff to Account Management
 
 ---
 
@@ -130,7 +147,7 @@ Once the high-risk payment processor is approved:
 | Milestone | Target | Notes |
 |-----------|--------|-------|
 | Welcome email sent | Day 0 (same day as close) | Automated on deal close |
-| Kickoff onboarding call | Day 1 | Spencer-led at launch |
+| Kickoff onboarding call | Day 1 | Drake-led |
 | Pharmacy profile complete | Day 1–2 | Done on first call |
 | Payment processor applied | Day 1–2 | Start immediately — clock is ticking |
 | Formulary uploaded | Day 2–3 | FullStackRx assists if data provided |
@@ -151,7 +168,7 @@ Once the high-risk payment processor is approved:
 |----------|----------|--------|--------|
 | Welcome email template | Pharmacy owner | Email | 🔴 Not started |
 | In-app setup wizard | Pharmacy | Product feature | 🔴 Engineering requirement |
-| Onboarding call script / checklist | Spencer (internal) | Doc | 🔴 Not started |
+| Onboarding call script / checklist | Drake (internal) | Doc | 🔴 Not started |
 | Pharmacy training video | Pharmacy staff | Video | 🔴 Not started |
 | Provider training video | Providers | Video | 🔴 Not started |
 | Patient training video | Patients | Video | 🔴 Not started |
@@ -166,7 +183,7 @@ Once the high-risk payment processor is approved:
 
 | Phase | Owner | Notes |
 |-------|-------|-------|
-| **Launch** | Spencer | Handles all onboarding, AM, and CS |
+| **Launch** | Drake (CRO) | Handles all onboarding, AM, and CS |
 | **~6 months post-launch** | First onboarding/AM/CS hire | One person covering all three functions |
 | **Scale** | Three separate departments | Onboarding, Account Management, Client Success split as team grows |
 
