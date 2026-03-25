@@ -3,14 +3,19 @@
 //
 // Allows a caller with role >= team_lead to update another user's role.
 // ARC architecture plan: 2026-03-24
-// ARC corrections applied: C1 callerRole validation, C2 email lookup via users table, C3 IDENTIFIER_CONFLICT audit log.
+// ARC corrections: C1 callerRole validation, C2 email lookup via profiles table, C3 IDENTIFIER_CONFLICT audit log.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 import { createServiceRoleClient } from '@/lib/supabase/server';
-import { authenticateClutchBearer } from '../../_lib/auth';
 import { createAuditEntry } from '@/features/audit/service-server';
-import { VALID_ROLES, ROLE_HIERARCHY, MIN_ROLE_LEVEL_TO_ASSIGN, isValidRole, type Role } from '@/lib/roles';
+import { authenticateClutchBearer } from '../../_lib/auth';
+import {
+  VALID_ROLES,
+  ROLE_HIERARCHY,
+  MIN_ROLE_LEVEL_TO_ASSIGN,
+  isValidRole,
+  type Role,
+} from '@/lib/roles';
 
 function errorResponse(status: number, code: string, message: string) {
   return NextResponse.json(
@@ -18,21 +23,6 @@ function errorResponse(status: number, code: string, message: string) {
     { status },
   );
 }
-
-const updateRoleSchema = z
-  .object({
-    email: z.string().email('Invalid email format').optional(),
-    userId: z.string().uuid('Invalid UUID format').optional(),
-    role: z.enum(VALID_ROLES, {
-      errorMap: () => ({
-        message: `Invalid role. Valid roles: ${VALID_ROLES.join(', ')}`,
-      }),
-    }),
-  })
-  .refine((d) => d.email || d.userId, {
-    message: 'Either email or userId must be provided',
-    path: ['email'],
-  });
 
 export async function PATCH(req: NextRequest) {
   const svc = createServiceRoleClient();
@@ -55,60 +45,69 @@ export async function PATCH(req: NextRequest) {
   const callerRole: Role = callerRoleRaw;
 
   // ── 2. Parse + validate request body ─────────────────────────────────────
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return errorResponse(400, 'MISSING_IDENTIFIER', 'Request body must be valid JSON');
+  const body = await req.json().catch(() => null);
+  const { email, userId, role } = (body ?? {}) as {
+    email?: string;
+    userId?: string;
+    role?: string;
+  };
+
+  if (!email && !userId) {
+    return errorResponse(400, 'MISSING_IDENTIFIER', 'Either email or userId must be provided');
   }
 
-  const parsed = updateRoleSchema.safeParse(body);
-  if (!parsed.success) {
-    const firstIssue = parsed.error.issues[0];
-    const isRoleError =
-      firstIssue.path.includes('role') ||
-      firstIssue.message.toLowerCase().includes('role');
-    if (isRoleError) {
-      return errorResponse(
-        400,
-        'INVALID_ROLE',
-        `Invalid role value. Valid roles: ${VALID_ROLES.join(', ')}`,
-      );
-    }
-    return errorResponse(400, 'MISSING_IDENTIFIER', firstIssue.message);
+  if (!role) {
+    return errorResponse(
+      400,
+      'INVALID_ROLE',
+      `Invalid role value. Valid roles: ${VALID_ROLES.join(', ')}`,
+    );
   }
 
-  const { email, userId, role: targetRole } = parsed.data;
+  if (!VALID_ROLES.includes(role as Role)) {
+    return errorResponse(
+      400,
+      'INVALID_ROLE',
+      `Invalid role value. Valid roles: ${VALID_ROLES.join(', ')}`,
+    );
+  }
+
+  const targetRole = role as Role;
 
   // ── 3. Minimum permission check ───────────────────────────────────────────
   if (ROLE_HIERARCHY[callerRole] < MIN_ROLE_LEVEL_TO_ASSIGN) {
     return errorResponse(403, 'FORBIDDEN', 'Insufficient permissions to update user roles');
   }
 
-  // ── 4. Resolve target user ────────────────────────────────────────────────
-  let targetUserById: Awaited<ReturnType<typeof svc.auth.admin.getUserById>>['data']['user'] | null = null;
-  let targetUserByEmail: typeof targetUserById = null;
+  // ── 4. Resolve target user(s) ─────────────────────────────────────────────
+  type TargetUser = { id: string; email?: string; user_metadata?: Record<string, unknown>; updated_at?: string };
+  let targetUserById: TargetUser | null = null;
+  let targetUserByEmail: TargetUser | null = null;
 
   if (userId) {
     const { data, error } = await svc.auth.admin.getUserById(userId);
     if (error) console.error('[PATCH /users/role] getUserById error', error);
-    targetUserById = data?.user ?? null;
+    targetUserById = data?.user
+      ? { id: data.user.id, email: data.user.email, user_metadata: data.user.user_metadata as Record<string, unknown>, updated_at: data.user.updated_at }
+      : null;
   }
 
-  // ── C2: Email → UUID via users table (replaces listUsers perPage:1000) ────
+  // ── C2: Email → UUID via profiles table (avoids listUsers page limit) ─────
   if (email) {
-    const { data: appUser, error: appLookupError } = await svc
-      .from('users')
+    const { data: profile, error: profileError } = await svc
+      .from('profiles')
       .select('id')
       .eq('email', email)
       .single();
 
-    if (appLookupError || !appUser) {
-      console.error('[PATCH /users/role] users table email lookup error', appLookupError);
+    if (profileError || !profile) {
+      console.error('[PATCH /users/role] profiles email lookup error', profileError);
     } else {
-      const { data, error } = await svc.auth.admin.getUserById(appUser.id);
+      const { data, error } = await svc.auth.admin.getUserById(profile.id);
       if (error) console.error('[PATCH /users/role] getUserById (via email lookup) error', error);
-      targetUserByEmail = data?.user ?? null;
+      targetUserByEmail = data?.user
+        ? { id: data.user.id, email: data.user.email, user_metadata: data.user.user_metadata as Record<string, unknown>, updated_at: data.user.updated_at }
+        : null;
     }
   }
 
@@ -122,10 +121,10 @@ export async function PATCH(req: NextRequest) {
   ) {
     void createAuditEntry(svc, {
       actorId: callerId,
-      actionType: 'USER_ROLE_UPDATE_FAILED',
-      entityType: 'user',
+      actionType: 'user_role_update_failed',
+      entityType: 'profile',
       entityId: callerId,
-      reason: 'IDENTIFIER_CONFLICT',
+      reason: 'IDENTIFIER_CONFLICT: email and userId resolve to different users',
     });
     return errorResponse(
       400,
@@ -168,22 +167,15 @@ export async function PATCH(req: NextRequest) {
     return errorResponse(500, 'INTERNAL_ERROR', 'An unexpected error occurred');
   }
 
-  // ── 9. Upsert app-layer users table (soft-fail) ───────────────────────────
+  // ── 9. Upsert profiles table (soft-fail) ──────────────────────────────────
   const { error: upsertError } = await svc
-    .from('users')
-    .upsert(
-      {
-        id: targetUser.id,
-        email: updatedData.user.email,
-        role: targetRole,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'id' },
-    );
+    .from('profiles')
+    .update({ role: targetRole } as never)
+    .eq('id', targetUser.id);
 
   if (upsertError) {
     console.error(
-      '[PATCH /users/role] users table upsert failed — auth updated, app table may be out of sync',
+      '[PATCH /users/role] profiles update failed — auth updated, profiles table may be out of sync',
       upsertError,
     );
   }
@@ -191,8 +183,8 @@ export async function PATCH(req: NextRequest) {
   // ── 10. Audit log (success) ───────────────────────────────────────────────
   void createAuditEntry(svc, {
     actorId: callerId,
-    actionType: 'USER_ROLE_UPDATED',
-    entityType: 'user',
+    actionType: 'user_role_updated',
+    entityType: 'profile',
     entityId: targetUser.id,
     beforeState: { role: currentRole ?? null },
     afterState: { role: targetRole },
