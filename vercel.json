@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "src/app/api/clutch/docs/[docId]/export/route.ts": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  }
+}
