@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -19,14 +20,20 @@ import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import CircularProgress from '@mui/material/CircularProgress';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
 import AddIcon from '@mui/icons-material/Add';
 import ArticleIcon from '@mui/icons-material/ArticleOutlined';
 import ImageIcon from '@mui/icons-material/ImageOutlined';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFileOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import UploadIcon from '@mui/icons-material/UploadOutlined';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import DriveFileMoveIcon from '@mui/icons-material/DriveFileMove';
+import LinkIcon from '@mui/icons-material/Link';
 import FolderTree from '@/features/docs/components/FolderTree';
 import DocEditor from '@/features/docs/components/DocEditor';
+import MoveDocModal from '@/features/docs/components/MoveDocModal';
 import {
   listFolders,
   listDocs,
@@ -36,12 +43,15 @@ import {
   updateFolder,
   createDoc,
   deleteDoc,
+  updateDoc,
+  getDoc,
   uploadDocFile,
   deleteDocFile,
 } from '@/features/docs/service';
 import type { Doc, DocFolder, DocFile } from '@/lib/types';
 
 type NewFolderState = { open: boolean; parentId: string | null };
+type ContextMenu = { mouseX: number; mouseY: number; docId: string } | null;
 
 function fileIcon(mimeType: string | null) {
   if (!mimeType) return <InsertDriveFileIcon fontSize="small" />;
@@ -56,7 +66,24 @@ function formatBytes(bytes: number | null) {
   return `${(bytes / 1048576).toFixed(1)} MB`;
 }
 
-export default function DocsPage() {
+/** Walk folders flat list to get all ancestor IDs of a given folderId */
+function getAncestorIds(folderId: string, folders: DocFolder[]): Set<string> {
+  const map = new Map(folders.map((f) => [f.id, f.parentId]));
+  const result = new Set<string>();
+  let cursor: string | null = folderId;
+  while (cursor) {
+    result.add(cursor);
+    cursor = map.get(cursor) ?? null;
+  }
+  return result;
+}
+
+// ─── Inner page (needs useSearchParams) ───────────────────────────────────────
+
+function DocsPageInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [folders, setFolders] = useState<DocFolder[]>([]);
   const [docs, setDocs] = useState<Doc[]>([]);
   const [files, setFiles] = useState<DocFile[]>([]);
@@ -67,10 +94,21 @@ export default function DocsPage() {
   const [newFolderName, setNewFolderName] = useState('');
   const [creatingDoc, setCreatingDoc] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [foldersLoaded, setFoldersLoaded] = useState(false);
+  const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(new Set());
+  const [contextMenu, setContextMenu] = useState<ContextMenu>(null);
+  const [moveDocId, setMoveDocId] = useState<string | null>(null);
+  const [copiedDocId, setCopiedDocId] = useState<string | null>(null);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Capture deep-link docId on mount only
+  const deepLinkDocId = useRef(searchParams.get('docId')).current;
 
   const loadFolders = useCallback(async () => {
     const data = await listFolders();
     setFolders(data);
+    setFoldersLoaded(true);
+    return data;
   }, []);
 
   const loadContents = useCallback(async (folderId: string | null) => {
@@ -93,8 +131,30 @@ export default function DocsPage() {
 
   useEffect(() => {
     loadContents(selectedFolderId);
-    setActiveDoc(null);
-  }, [selectedFolderId, loadContents]);
+    if (!deepLinkDocId) setActiveDoc(null);
+  }, [selectedFolderId, loadContents, deepLinkDocId]);
+
+  // Deep-link: once folders are loaded, resolve docId → folder → doc
+  useEffect(() => {
+    if (!foldersLoaded || !deepLinkDocId) return;
+
+    getDoc(deepLinkDocId)
+      .then((doc) => {
+        if (doc.folderId) {
+          const ancestors = getAncestorIds(doc.folderId, folders);
+          setExpandedFolderIds(ancestors);
+          setSelectedFolderId(doc.folderId);
+        }
+        setActiveDoc(doc);
+        router.replace(`/docs?docId=${doc.id}`, { scroll: false });
+      })
+      .catch(() => {
+        // 404 fallback: show empty state, no error
+        setActiveDoc(null);
+      });
+    // Only run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [foldersLoaded]);
 
   const handleSelectFolder = (id: string | null) => setSelectedFolderId(id);
 
@@ -120,7 +180,13 @@ export default function DocsPage() {
   };
 
   const handleDeleteFolder = async (id: string) => {
-    if (!confirm('Delete this folder and all its contents?')) return;
+    // Folder delete guard: warn if docs exist
+    const folderDocs = await listDocs(id);
+    const message =
+      folderDocs.length > 0
+        ? `This folder contains ${folderDocs.length} document(s). Delete folder and all its contents?`
+        : 'Delete this folder and all its contents?';
+    if (!confirm(message)) return;
     await deleteFolder(id);
     if (selectedFolderId === id) setSelectedFolderId(null);
     await loadFolders();
@@ -133,6 +199,7 @@ export default function DocsPage() {
       const doc = await createDoc({ title: 'Untitled Document', folderId: selectedFolderId });
       setDocs((prev) => [doc, ...prev]);
       setActiveDoc(doc);
+      router.replace(`/docs?docId=${doc.id}`, { scroll: false });
     } finally {
       setCreatingDoc(false);
     }
@@ -142,7 +209,10 @@ export default function DocsPage() {
     if (!confirm('Delete this document?')) return;
     await deleteDoc(id);
     setDocs((prev) => prev.filter((d) => d.id !== id));
-    if (activeDoc?.id === id) setActiveDoc(null);
+    if (activeDoc?.id === id) {
+      setActiveDoc(null);
+      router.replace('/docs', { scroll: false });
+    }
   };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -167,6 +237,50 @@ export default function DocsPage() {
   const handleDocSaved = (updated: Doc) => {
     setDocs((prev) => prev.map((d) => (d.id === updated.id ? { ...d, ...updated } : d)));
     setActiveDoc((prev) => (prev?.id === updated.id ? { ...prev, ...updated } : prev));
+  };
+
+  const handleDocClick = (doc: Doc) => {
+    setActiveDoc(doc);
+    router.push(`/docs?docId=${doc.id}`, { scroll: false });
+  };
+
+  // Context menu
+  const handleContextMenu = (e: React.MouseEvent, docId: string) => {
+    e.preventDefault();
+    setContextMenu({ mouseX: e.clientX, mouseY: e.clientY, docId });
+  };
+
+  const handleContextMenuClose = () => setContextMenu(null);
+
+  const handleMoveDocOpen = (docId: string) => {
+    setMoveDocId(docId);
+    handleContextMenuClose();
+  };
+
+  const handleMoveDocConfirm = async (docId: string, newFolderId: string | null) => {
+    setMoveDocId(null);
+    // Optimistic: remove from current list
+    const original = docs.find((d) => d.id === docId);
+    setDocs((prev) => prev.filter((d) => d.id !== docId));
+    if (activeDoc?.id === docId) setActiveDoc(null);
+
+    try {
+      await updateDoc(docId, { folderId: newFolderId });
+    } catch {
+      // Rollback
+      if (original) {
+        setDocs((prev) => [original, ...prev]);
+      }
+    }
+  };
+
+  const handleCopyLink = (docId: string) => {
+    const url = `${window.location.origin}/docs?docId=${docId}`;
+    navigator.clipboard.writeText(url).catch(() => {});
+    setCopiedDocId(docId);
+    handleContextMenuClose();
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    copiedTimerRef.current = setTimeout(() => setCopiedDocId(null), 2000);
   };
 
   return (
@@ -195,6 +309,7 @@ export default function DocsPage() {
             onCreateFolder={handleCreateFolder}
             onDeleteFolder={handleDeleteFolder}
             onMoveFolder={handleMoveFolder}
+            expandedFolderIds={expandedFolderIds}
           />
         </Box>
       </Paper>
@@ -251,8 +366,9 @@ export default function DocsPage() {
                     <ListItemButton
                       key={doc.id}
                       selected={activeDoc?.id === doc.id}
-                      onClick={() => setActiveDoc(doc)}
-                      sx={{ px: 1.5, py: 0.5, '&:hover .doc-delete': { opacity: 1 } }}
+                      onClick={() => handleDocClick(doc)}
+                      onContextMenu={(e) => handleContextMenu(e, doc.id)}
+                      sx={{ px: 1.5, py: 0.5, '&:hover .doc-actions': { opacity: 1 } }}
                     >
                       <ListItemIcon sx={{ minWidth: 28 }}>
                         <ArticleIcon sx={{ fontSize: 16, color: 'primary.main' }} />
@@ -263,7 +379,15 @@ export default function DocsPage() {
                         secondary={new Date(doc.updatedAt).toLocaleDateString()}
                         secondaryTypographyProps={{ fontSize: '0.68rem' }}
                       />
-                      <ListItemSecondaryAction className="doc-delete" sx={{ opacity: 0, transition: 'opacity 0.15s' }}>
+                      <ListItemSecondaryAction className="doc-actions" sx={{ opacity: 0, transition: 'opacity 0.15s', display: 'flex', gap: 0 }}>
+                        <Tooltip title={copiedDocId === doc.id ? 'Copied!' : 'Copy link'}>
+                          <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleCopyLink(doc.id); }}>
+                            <LinkIcon sx={{ fontSize: 12, color: copiedDocId === doc.id ? 'success.main' : 'text.secondary' }} />
+                          </IconButton>
+                        </Tooltip>
+                        <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleContextMenu(e, doc.id); }}>
+                          <MoreVertIcon sx={{ fontSize: 13, color: 'text.secondary' }} />
+                        </IconButton>
                         <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleDeleteDoc(doc.id); }}>
                           <DeleteIcon sx={{ fontSize: 13, color: 'error.main' }} />
                         </IconButton>
@@ -342,6 +466,44 @@ export default function DocsPage() {
           <Button variant="contained" onClick={handleConfirmFolder} disabled={!newFolderName.trim()}>Create</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Doc context menu */}
+      <Menu
+        open={contextMenu !== null}
+        onClose={handleContextMenuClose}
+        anchorReference="anchorPosition"
+        anchorPosition={contextMenu ? { top: contextMenu.mouseY, left: contextMenu.mouseX } : undefined}
+      >
+        <MenuItem onClick={() => contextMenu && handleMoveDocOpen(contextMenu.docId)} dense>
+          <DriveFileMoveIcon sx={{ fontSize: 16, mr: 1 }} />
+          Move to…
+        </MenuItem>
+        <MenuItem onClick={() => contextMenu && handleCopyLink(contextMenu.docId)} dense>
+          <LinkIcon sx={{ fontSize: 16, mr: 1 }} />
+          {copiedDocId === contextMenu?.docId ? 'Copied!' : 'Copy link'}
+        </MenuItem>
+      </Menu>
+
+      {/* Move doc modal */}
+      {moveDocId && (
+        <MoveDocModal
+          docId={moveDocId}
+          folders={folders}
+          currentFolderId={docs.find((d) => d.id === moveDocId)?.folderId ?? null}
+          onConfirm={handleMoveDocConfirm}
+          onClose={() => setMoveDocId(null)}
+        />
+      )}
     </Box>
+  );
+}
+
+// ─── Suspense wrapper (required for useSearchParams in App Router) ─────────────
+
+export default function DocsPage() {
+  return (
+    <Suspense>
+      <DocsPageInner />
+    </Suspense>
   );
 }
