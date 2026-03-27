@@ -5,11 +5,15 @@ import dynamic from 'next/dynamic';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 import SaveIcon from '@mui/icons-material/SaveOutlined';
+import LinkIcon from '@mui/icons-material/Link';
 import type { Doc } from '@/lib/types';
 import { updateDoc } from '../service';
+import ExportMenu from './ExportMenu';
 
 // Lazy-load the markdown editor to avoid SSR issues
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false });
@@ -25,7 +29,17 @@ export default function DocEditor({ doc, onSaved }: DocEditorProps) {
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const linkCopiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleCopyLink = () => {
+    const url = `${window.location.origin}/docs?docId=${doc.id}`;
+    navigator.clipboard.writeText(url).catch(() => {});
+    setLinkCopied(true);
+    if (linkCopiedTimerRef.current) clearTimeout(linkCopiedTimerRef.current);
+    linkCopiedTimerRef.current = setTimeout(() => setLinkCopied(false), 2000);
+  };
 
   // Reset when doc changes
   useEffect(() => {
@@ -91,6 +105,12 @@ export default function DocEditor({ doc, onSaved }: DocEditorProps) {
           {dirty && !saving && (
             <Typography variant="caption" color="text.disabled">Unsaved</Typography>
           )}
+          <Tooltip title={linkCopied ? 'Copied!' : 'Copy link'}>
+            <IconButton size="small" onClick={handleCopyLink}>
+              <LinkIcon sx={{ fontSize: 18, color: linkCopied ? 'success.main' : 'inherit' }} />
+            </IconButton>
+          </Tooltip>
+          <ExportMenu docId={doc.id} title={title} content={content} />
           <Button
             size="small"
             variant="contained"

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
@@ -35,6 +35,9 @@ interface FolderTreeProps {
   onCreateFolder: (parentId: string | null) => void;
   onDeleteFolder: (id: string) => void;
   onMoveFolder?: (folderId: string, newParentId: string | null) => void;
+  /** Folder IDs that should be expanded on mount / when updated */
+  expandedFolderIds?: Set<string>;
+  onMoveDoc?: (docId: string, newFolderId: string | null) => void;
 }
 
 interface FolderNodeProps {
@@ -46,6 +49,7 @@ interface FolderNodeProps {
   onDeleteFolder: (id: string) => void;
   activeDragId: string | null;
   allFolders: DocFolder[];
+  expandedFolderIds?: Set<string>;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -77,8 +81,14 @@ function FolderNode({
   onDeleteFolder,
   activeDragId,
   allFolders,
+  expandedFolderIds,
 }: FolderNodeProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(() => expandedFolderIds?.has(folder.id) ?? false);
+
+  // Expand when expandedFolderIds changes (e.g. deep-link navigation)
+  useEffect(() => {
+    if (expandedFolderIds?.has(folder.id)) setOpen(true);
+  }, [expandedFolderIds, folder.id]);
   const hasChildren = (folder.children?.length ?? 0) > 0;
   const isSelected = selectedFolderId === folder.id;
 
@@ -216,6 +226,7 @@ function FolderNode({
               onDeleteFolder={onDeleteFolder}
               activeDragId={activeDragId}
               allFolders={allFolders}
+              expandedFolderIds={expandedFolderIds}
             />
           ))}
         </Box>
@@ -328,6 +339,7 @@ export default function FolderTree({
   onCreateFolder,
   onDeleteFolder,
   onMoveFolder,
+  expandedFolderIds,
 }: FolderTreeProps) {
   const tree = buildFolderTree(folders);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -393,6 +405,7 @@ export default function FolderTree({
             onDeleteFolder={onDeleteFolder}
             activeDragId={activeDragId}
             allFolders={folders}
+            expandedFolderIds={expandedFolderIds}
           />
         ))}
       </Box>
