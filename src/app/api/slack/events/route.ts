@@ -96,7 +96,7 @@ async function isDuplicateEvent(eventId: string): Promise<boolean> {
   // Try to insert — unique constraint on event_id will reject duplicates
   const { error } = await supabase
     .from('slack_processed_events')
-    .insert({ event_id: eventId, expires_at: expiresAt });
+    .insert({ event_id: eventId, expires_at: expiresAt } as never);
 
   if (error) {
     // Unique violation = already processed, drop it
