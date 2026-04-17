@@ -5,6 +5,9 @@ import { parseSlackMessage, type SlackEvent } from '@/lib/slack/event-parser';
 import { processAgentMessageSync } from '@/lib/runtime/message-pipeline';
 import { postSlackMessage } from '@/lib/slack/client';
 
+// How long to retain processed event IDs to block Slack retries (5 minutes)
+const DEDUP_TTL_SECONDS = 300;
+
 async function getSlackCredentials(): Promise<{
   signingSecret: string;
   botToken: string;
@@ -82,6 +85,68 @@ async function getSlackCredentials(): Promise<{
   };
 }
 
+/**
+ * Returns true if this event_id has already been processed (i.e. is a Slack retry).
+ * Inserts the event_id with a TTL if not seen before.
+ */
+async function isDuplicateEvent(eventId: string): Promise<boolean> {
+  const supabase = createServiceRoleClient();
+  const expiresAt = new Date(Date.now() + DEDUP_TTL_SECONDS * 1000).toISOString();
+
+  // Try to insert — unique constraint on event_id will reject duplicates
+  const { error } = await supabase
+    .from('slack_processed_events')
+    .insert({ event_id: eventId, expires_at: expiresAt } as never);
+
+  if (error) {
+    // Unique violation = already processed, drop it
+    if (error.code === '23505') return true;
+    // Any other error: log but allow processing to continue
+    console.error('[Slack dedup insert error]', error.message);
+  }
+
+  return false;
+}
+
+interface ProcessParams {
+  agentId: string;
+  agentName: string;
+  conversationId: string;
+  userMessage: string;
+  userId: string;
+  botToken: string;
+  channelId: string;
+  threadTs: string;
+}
+
+/**
+ * Runs the full agent pipeline and posts the result back to Slack.
+ * Called fire-and-forget after the 200 is returned to Slack.
+ */
+async function processAndRespond(params: ProcessParams): Promise<void> {
+  const { agentId, agentName, conversationId, userMessage, userId, botToken, channelId, threadTs } = params;
+
+  try {
+    const response = await processAgentMessageSync({
+      agentId,
+      conversationId,
+      userMessage,
+      userId,
+      channel: 'slack',
+    });
+
+    await postSlackMessage({
+      botToken,
+      channel: channelId,
+      text: response,
+      threadTs,
+      username: agentName,
+    });
+  } catch (err) {
+    console.error('[Slack agent response error]', err);
+  }
+}
+
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
   let payload: SlackEvent;
@@ -92,6 +157,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
+  // Slack URL verification handshake
   if (payload.type === 'url_verification' && payload.challenge) {
     return NextResponse.json({ challenge: payload.challenge });
   }
@@ -118,6 +184,15 @@ export async function POST(req: NextRequest) {
 
   if (payload.type !== 'event_callback' || !payload.event) {
     return NextResponse.json({ ok: true });
+  }
+
+  // Deduplicate: drop Slack retries before doing any real work
+  const eventId = payload.event_id;
+  if (eventId) {
+    const duplicate = await isDuplicateEvent(eventId);
+    if (duplicate) {
+      return NextResponse.json({ ok: true });
+    }
   }
 
   const parsed = parseSlackMessage(payload, slackConfig.agentSlackUserIds);
@@ -171,25 +246,17 @@ export async function POST(req: NextRequest) {
     conversationId = (newConv as { id: string }).id;
   }
 
-  try {
-    const response = await processAgentMessageSync({
-      agentId,
-      conversationId,
-      userMessage: parsed.text,
-      userId: parsed.userId,
-      channel: 'slack',
-    });
-
-    await postSlackMessage({
-      botToken: slackConfig.botToken,
-      channel: parsed.channelId,
-      text: response,
-      threadTs: parsed.threadTs,
-      username: agentName,
-    });
-  } catch (err) {
-    console.error('Slack agent response error:', err);
-  }
+  // Fire-and-forget: return 200 to Slack immediately, process in background
+  processAndRespond({
+    agentId,
+    agentName,
+    conversationId,
+    userMessage: parsed.text,
+    userId: parsed.userId,
+    botToken: slackConfig.botToken,
+    channelId: parsed.channelId,
+    threadTs: parsed.threadTs,
+  });
 
   return NextResponse.json({ ok: true });
 }
